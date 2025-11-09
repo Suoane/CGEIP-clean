@@ -4,7 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { toast } from 'react-toastify';
-import './Institute.css';
+import '../company/Company.css';
 
 const InstituteProfile = () => {
   const { currentUser } = useAuth();
@@ -98,7 +98,7 @@ const InstituteProfile = () => {
   }
 
   return (
-    <div className="institute-profile-container">
+    <div className="company-profile-container">
       <div className="profile-header">
         <h1>Institution Profile</h1>
         <p>Update your institution information</p>
@@ -154,8 +154,13 @@ const InstituteProfile = () => {
               placeholder="https://example.com/logo.png"
             />
             {formData.logo && (
-              <div className="logo-preview">
-                <img src={formData.logo} alt="Institution Logo" />
+              <div className="logo-preview" style={{ marginTop: '1rem' }}>
+                <img 
+                  src={formData.logo} 
+                  alt="Institution Logo" 
+                  style={{ maxWidth: '200px', maxHeight: '100px', objectFit: 'contain' }}
+                  onError={(e) => { e.target.style.display = 'none'; toast.error('Invalid logo URL'); }}
+                />
               </div>
             )}
           </div>

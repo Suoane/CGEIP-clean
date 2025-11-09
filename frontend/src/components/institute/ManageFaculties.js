@@ -5,7 +5,7 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } 
 import { db } from '../../services/firebase';
 import { toast } from 'react-toastify';
 import { FaEdit, FaTrash, FaPlus, FaTimes } from 'react-icons/fa';
-import './Institute.css';
+import '../admin/Admin.css';
 
 const ManageFaculties = () => {
   const { currentUser } = useAuth();
@@ -52,7 +52,6 @@ const ManageFaculties = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
       if (editMode && currentFaculty) {
@@ -75,8 +74,6 @@ const ManageFaculties = () => {
     } catch (error) {
       console.error('Error saving faculty:', error);
       toast.error('Failed to save faculty');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -156,7 +153,7 @@ const ManageFaculties = () => {
                   <td>{faculty.facultyName}</td>
                   <td>{faculty.facultyCode}</td>
                   <td>{faculty.dean || 'N/A'}</td>
-                  <td>{new Date(faculty.createdAt?.toDate()).toLocaleDateString()}</td>
+                  <td>{faculty.createdAt?.toDate ? new Date(faculty.createdAt.toDate()).toLocaleDateString() : 'N/A'}</td>
                   <td>
                     <div className="action-buttons">
                       <button
@@ -244,8 +241,8 @@ const ManageFaculties = () => {
                 <button type="button" onClick={resetForm} className="btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" disabled={loading}>
-                  {loading ? 'Saving...' : editMode ? 'Update' : 'Add'}
+                <button type="submit" className="btn-primary">
+                  {editMode ? 'Update' : 'Add'}
                 </button>
               </div>
             </form>

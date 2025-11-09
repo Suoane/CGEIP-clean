@@ -5,7 +5,7 @@ import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } 
 import { db } from '../../services/firebase';
 import { toast } from 'react-toastify';
 import { FaEdit, FaTrash, FaPlus, FaTimes, FaToggleOn, FaToggleOff } from 'react-icons/fa';
-import './Institute.css';
+import '../admin/Admin.css';
 
 const ManageCourses = () => {
   const { currentUser } = useAuth();
@@ -79,7 +79,11 @@ const ManageCourses = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+
+    if (faculties.length === 0) {
+      toast.error('Please create a faculty first before adding courses');
+      return;
+    }
 
     try {
       if (editMode && currentCourse) {
@@ -102,8 +106,6 @@ const ManageCourses = () => {
     } catch (error) {
       console.error('Error saving course:', error);
       toast.error('Failed to save course');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -176,10 +178,25 @@ const ManageCourses = () => {
     <div className="manage-container">
       <div className="page-header">
         <h1>Manage Courses</h1>
-        <button onClick={() => setShowModal(true)} className="btn-primary">
+        <button 
+          onClick={() => {
+            if (faculties.length === 0) {
+              toast.warning('Please create a faculty first before adding courses');
+              return;
+            }
+            setShowModal(true);
+          }} 
+          className="btn-primary"
+        >
           <FaPlus /> Add Course
         </button>
       </div>
+
+      {faculties.length === 0 && (
+        <div className="alert-banner">
+          <p>⚠️ You need to create at least one faculty before you can add courses.</p>
+        </div>
+      )}
 
       <div className="data-table">
         <table>
@@ -273,9 +290,6 @@ const ManageCourses = () => {
                     </option>
                   ))}
                 </select>
-                {faculties.length === 0 && (
-                  <small>Please add a faculty first</small>
-                )}
               </div>
 
               <div className="form-group">
@@ -360,8 +374,8 @@ const ManageCourses = () => {
                 <button type="button" onClick={resetForm} className="btn-secondary">
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary" disabled={loading}>
-                  {loading ? 'Saving...' : editMode ? 'Update' : 'Add'}
+                <button type="submit" className="btn-primary">
+                  {editMode ? 'Update' : 'Add'}
                 </button>
               </div>
             </form>

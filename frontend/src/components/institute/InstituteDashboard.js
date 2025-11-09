@@ -102,18 +102,18 @@ const InstituteDashboard = () => {
           <FaUsers className="stat-icon" />
           <h3>Admitted Students</h3>
           <p className="stat-number">{stats.admittedStudents}</p>
-          <Link to="/institute/students" className="stat-link">View Students</Link>
+          <Link to="/institute/admissions" className="stat-link">View Admissions</Link>
         </div>
       </div>
 
       <div className="quick-actions">
         <h2>Quick Actions</h2>
         <div className="action-buttons">
-          <Link to="/institute/add-faculty" className="action-btn">
-            Add Faculty
+          <Link to="/institute/faculties" className="action-btn">
+            Manage Faculties
           </Link>
-          <Link to="/institute/add-course" className="action-btn">
-            Add Course
+          <Link to="/institute/courses" className="action-btn">
+            Manage Courses
           </Link>
           <Link to="/institute/applications" className="action-btn">
             Review Applications

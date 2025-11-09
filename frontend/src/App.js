@@ -16,8 +16,8 @@ import Register from './components/auth/Register';
 // Admin Components
 import AdminDashboard from './components/admin/AdminDashboard';
 import ManageInstitutions from './components/admin/ManageInstitutions';
-import ManageFaculties from './components/admin/ManageFaculties';
-import ManageCourses from './components/admin/ManageCourses';
+import AdminManageFaculties from './components/admin/ManageFaculties';
+import AdminManageCourses from './components/admin/ManageCourses';
 import ManageCompanies from './components/admin/ManageCompanies';
 import SystemReports from './components/admin/SystemReports';
 
@@ -31,6 +31,11 @@ import UploadDocuments from './components/student/UploadDocuments';
 
 // Institute Components
 import InstituteDashboard from './components/institute/InstituteDashboard';
+import InstituteManageFaculties from './components/institute/ManageFaculties';
+import InstituteManageCourses from './components/institute/ManageCourses';
+import ViewApplications from './components/institute/ViewApplications';
+import InstituteProfile from './components/institute/InstituteProfile';
+import PublishAdmissions from './components/institute/PublishAdmissions';
 
 // Company Components
 import CompanyDashboard from './components/company/CompanyDashboard';
@@ -74,7 +79,7 @@ function App() {
                 path="/admin/faculties"
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
-                    <ManageFaculties />
+                    <AdminManageFaculties />
                   </ProtectedRoute>
                 }
               />
@@ -82,7 +87,7 @@ function App() {
                 path="/admin/courses"
                 element={
                   <ProtectedRoute allowedRoles={['admin']}>
-                    <ManageCourses />
+                    <AdminManageCourses />
                   </ProtectedRoute>
                 }
               />
@@ -159,6 +164,70 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['institute']}>
                     <InstituteDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/institute/faculties"
+                element={
+                  <ProtectedRoute allowedRoles={['institute']}>
+                    <InstituteManageFaculties />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/institute/add-faculty"
+                element={
+                  <ProtectedRoute allowedRoles={['institute']}>
+                    <InstituteManageFaculties />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/institute/courses"
+                element={
+                  <ProtectedRoute allowedRoles={['institute']}>
+                    <InstituteManageCourses />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/institute/add-course"
+                element={
+                  <ProtectedRoute allowedRoles={['institute']}>
+                    <InstituteManageCourses />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/institute/applications"
+                element={
+                  <ProtectedRoute allowedRoles={['institute']}>
+                    <ViewApplications />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/institute/publish-admissions"
+                element={
+                  <ProtectedRoute allowedRoles={['institute']}>
+                    <PublishAdmissions />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/institute/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['institute']}>
+                    <InstituteProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/institute/students"
+                element={
+                  <ProtectedRoute allowedRoles={['institute']}>
+                    <ViewApplications />
                   </ProtectedRoute>
                 }
               />

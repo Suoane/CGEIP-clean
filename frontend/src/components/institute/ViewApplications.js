@@ -4,39 +4,20 @@ import { useAuth } from '../../context/AuthContext';
 import { collection, getDocs, doc, getDoc, updateDoc, query, where } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { toast } from 'react-toastify';
-import { FaEye, FaCheck, FaTimes, FaClock } from 'react-icons/fa';
-import './Institute.css';
+import { FaEye, FaCheck, FaTimes } from 'react-icons/fa';
+import '../admin/Admin.css';
 
 const ViewApplications = () => {
   const { currentUser } = useAuth();
   const [applications, setApplications] = useState([]);
-  const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, pending, admitted, rejected
+  const [filter, setFilter] = useState('all');
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   useEffect(() => {
-    fetchCourses();
     fetchApplications();
   }, [currentUser]);
-
-  const fetchCourses = async () => {
-    try {
-      const q = query(
-        collection(db, 'courses'),
-        where('institutionId', '==', currentUser.uid)
-      );
-      const snapshot = await getDocs(q);
-      const coursesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setCourses(coursesData);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-    }
-  };
 
   const fetchApplications = async () => {
     try {
@@ -72,7 +53,7 @@ const ViewApplications = () => {
   };
 
   const handleStatusChange = async (applicationId, newStatus) => {
-    if (!window.confirm(`Are you sure you want to ${newStatus} this application?`)) {
+    if (!window.confirm(`Are you sure you want to mark this application as ${newStatus}?`)) {
       return;
     }
 
@@ -145,30 +126,29 @@ const ViewApplications = () => {
           <p>No applications found in this category.</p>
         </div>
       ) : (
-        <div className="applications-grid">
+        <div className="companies-grid">
           {filteredApplications.map(application => (
-            <div key={application.id} className="application-card">
-              <div className="application-header">
+            <div key={application.id} className="company-card">
+              <div className="company-header">
                 <div>
                   <h3>
                     {application.student?.personalInfo?.firstName} {application.student?.personalInfo?.lastName}
                   </h3>
-                  <p className="application-course">{application.course?.courseName}</p>
-                  <p className="application-code">{application.course?.courseCode}</p>
+                  <p className="company-industry">{application.course?.courseName}</p>
+                  <p className="company-location">{application.course?.courseCode}</p>
                 </div>
                 <span className={`status-badge ${application.status}`}>
                   {application.status}
                 </span>
               </div>
 
-              <div className="application-info">
+              <div className="company-info">
                 <p><strong>Email:</strong> {application.student?.personalInfo?.email}</p>
                 <p><strong>Phone:</strong> {application.student?.personalInfo?.phone || 'N/A'}</p>
-                <p><strong>Applied:</strong> {new Date(application.appliedAt?.toDate()).toLocaleDateString()}</p>
-                <p><strong>Application #:</strong> {application.applicationNumber}</p>
+                <p><strong>Applied:</strong> {application.appliedAt?.toDate ? new Date(application.appliedAt.toDate()).toLocaleDateString() : 'N/A'}</p>
               </div>
 
-              <div className="application-actions">
+              <div className="company-actions">
                 <button
                   onClick={() => viewDetails(application)}
                   className="btn-icon btn-info"
@@ -204,7 +184,7 @@ const ViewApplications = () => {
       {/* Application Details Modal */}
       {showDetailsModal && selectedApplication && (
         <div className="modal-overlay" onClick={() => setShowDetailsModal(false)}>
-          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Application Details</h2>
               <button onClick={() => setShowDetailsModal(false)} className="btn-close">
@@ -212,7 +192,7 @@ const ViewApplications = () => {
               </button>
             </div>
 
-            <div className="application-details-content">
+            <div className="company-details-content">
               <div className="detail-section">
                 <h3>Student Information</h3>
                 <p><strong>Name:</strong> {selectedApplication.student?.personalInfo?.firstName} {selectedApplication.student?.personalInfo?.lastName}</p>
@@ -226,16 +206,17 @@ const ViewApplications = () => {
                 <h3>Academic Information</h3>
                 <p><strong>Previous School:</strong> {selectedApplication.student?.academicInfo?.previousSchool || 'N/A'}</p>
                 <p><strong>Graduation Year:</strong> {selectedApplication.student?.academicInfo?.graduationYear || 'N/A'}</p>
-                <p><strong>Grades:</strong></p>
                 {selectedApplication.student?.academicInfo?.grades && (
-                  <div className="grades-table">
-                    {Object.entries(selectedApplication.student.academicInfo.grades).map(([subject, grade]) => (
-                      <div key={subject} className="grade-row">
-                        <span>{subject}:</span>
-                        <strong>{grade}</strong>
-                      </div>
-                    ))}
-                  </div>
+                  <>
+                    <p><strong>Grades:</strong></p>
+                    <div style={{ paddingLeft: '1rem' }}>
+                      {Object.entries(selectedApplication.student.academicInfo.grades).map(([subject, grade]) => (
+                        <p key={subject} style={{ margin: '0.25rem 0' }}>
+                          {subject}: <strong>{grade}</strong>
+                        </p>
+                      ))}
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -249,18 +230,17 @@ const ViewApplications = () => {
 
               <div className="detail-section">
                 <h3>Application Details</h3>
-                <p><strong>Application Number:</strong> {selectedApplication.applicationNumber}</p>
-                <p><strong>Applied On:</strong> {new Date(selectedApplication.appliedAt?.toDate()).toLocaleDateString()}</p>
+                <p><strong>Applied On:</strong> {selectedApplication.appliedAt?.toDate ? new Date(selectedApplication.appliedAt.toDate()).toLocaleDateString() : 'N/A'}</p>
                 <p><strong>Status:</strong> <span className={`status-badge ${selectedApplication.status}`}>{selectedApplication.status}</span></p>
                 {selectedApplication.decidedAt && (
-                  <p><strong>Decided On:</strong> {new Date(selectedApplication.decidedAt?.toDate()).toLocaleDateString()}</p>
+                  <p><strong>Decided On:</strong> {new Date(selectedApplication.decidedAt.toDate()).toLocaleDateString()}</p>
                 )}
               </div>
 
               <div className="detail-section">
                 <h3>Documents</h3>
                 {selectedApplication.student?.documents ? (
-                  <div className="documents-list">
+                  <div>
                     {selectedApplication.student.documents.idCard && (
                       <a href={selectedApplication.student.documents.idCard} target="_blank" rel="noopener noreferrer" className="doc-link">
                         📄 ID Card
@@ -288,13 +268,14 @@ const ViewApplications = () => {
                 <>
                   <button
                     onClick={() => handleStatusChange(selectedApplication.id, 'admitted')}
-                    className="btn-success"
+                    className="btn-primary"
                   >
                     <FaCheck /> Admit Student
                   </button>
                   <button
                     onClick={() => handleStatusChange(selectedApplication.id, 'rejected')}
-                    className="btn-danger"
+                    className="btn-secondary"
+                    style={{ background: '#ef4444', color: 'white', border: 'none' }}
                   >
                     <FaTimes /> Reject Application
                   </button>
