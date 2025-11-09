@@ -2,14 +2,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
   signOut,
-  sendEmailVerification,
   onAuthStateChanged
 } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
 import { toast } from 'react-toastify';
+import api from '../services/api';
 
 const AuthContext = createContext();
 
@@ -26,57 +25,23 @@ export const AuthProvider = ({ children }) => {
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Register new user
+  // Register is now handled directly in the Register component
+  // This function is kept for backwards compatibility but not used
   const register = async (email, password, role, additionalData = {}) => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
+      const registrationData = {
+        email,
+        password,
+        role,
+        ...additionalData
+      };
 
-      // Send email verification
-      await sendEmailVerification(user);
-
-      // Create user document in Firestore
-      await setDoc(doc(db, 'users', user.uid), {
-        uid: user.uid,
-        email: email,
-        role: role,
-        emailVerified: false,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      });
-
-      // Create role-specific document
-      if (role === 'student') {
-        await setDoc(doc(db, 'students', user.uid), {
-          id: user.uid,
-          personalInfo: additionalData.personalInfo || {},
-          academicInfo: additionalData.academicInfo || {},
-          documents: {},
-          admittedInstitution: null,
-          applicationCount: 0,
-          studyStatus: 'applying',
-          createdAt: new Date()
-        });
-      } else if (role === 'company') {
-        await setDoc(doc(db, 'companies', user.uid), {
-          id: user.uid,
-          companyName: additionalData.companyName || '',
-          status: 'pending',
-          createdAt: new Date()
-        });
-      } else if (role === 'institute') {
-        await setDoc(doc(db, 'institutions', user.uid), {
-          id: user.uid,
-          name: additionalData.institutionName || '',
-          status: 'active',
-          createdAt: new Date()
-        });
-      }
-
-      toast.success('Registration successful! Please verify your email.');
-      return user;
+      await api.post('/auth/register', registrationData);
+      toast.success('Registration successful! Please check your email to verify your account.');
+      return true;
     } catch (error) {
-      toast.error(error.message);
+      const errorMessage = error.response?.data?.error || error.message;
+      toast.error(errorMessage);
       throw error;
     }
   };
@@ -84,24 +49,59 @@ export const AuthProvider = ({ children }) => {
   // Login user
   const login = async (email, password) => {
     try {
+      // First, sign in with Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // Check if email is verified
       if (!user.emailVerified) {
         toast.warning('Please verify your email before logging in.');
         await signOut(auth);
         return null;
       }
 
-      // Get user role
+      // Get user role from Firestore
       const userDoc = await getDoc(doc(db, 'users', user.uid));
-      if (userDoc.exists()) {
-        setUserRole(userDoc.data().role);
-        toast.success('Login successful!');
-        return { user, role: userDoc.data().role };
+      if (!userDoc.exists()) {
+        toast.error('User data not found. Please contact support.');
+        await signOut(auth);
+        return null;
       }
+
+      const userData = userDoc.data();
+      
+      // Check company approval status if user is a company
+      if (userData.role === 'company') {
+        const companyDoc = await getDoc(doc(db, 'companies', user.uid));
+        if (companyDoc.exists() && companyDoc.data().status === 'pending') {
+          toast.warning('Your company account is pending approval.');
+          await signOut(auth);
+          return null;
+        } else if (companyDoc.exists() && companyDoc.data().status === 'suspended') {
+          toast.error('Your company account has been suspended.');
+          await signOut(auth);
+          return null;
+        }
+      }
+
+      setUserRole(userData.role);
+      toast.success('Login successful!');
+      return { user, role: userData.role };
     } catch (error) {
-      toast.error(error.message);
+      console.error('Login error:', error);
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed login attempts. Please try again later.';
+      }
+      
+      toast.error(errorMessage);
       throw error;
     }
   };
@@ -114,7 +114,8 @@ export const AuthProvider = ({ children }) => {
       setUserRole(null);
       toast.success('Logged out successfully!');
     } catch (error) {
-      toast.error(error.message);
+      console.error('Logout error:', error);
+      toast.error('Error logging out. Please try again.');
       throw error;
     }
   };
@@ -126,9 +127,13 @@ export const AuthProvider = ({ children }) => {
         setCurrentUser(user);
         
         // Get user role
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-          setUserRole(userDoc.data().role);
+        try {
+          const userDoc = await getDoc(doc(db, 'users', user.uid));
+          if (userDoc.exists()) {
+            setUserRole(userDoc.data().role);
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
         }
       } else {
         setCurrentUser(null);

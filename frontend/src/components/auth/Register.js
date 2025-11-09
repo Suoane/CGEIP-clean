@@ -1,7 +1,8 @@
 // frontend/src/components/auth/Register.js
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-toastify';
+import api from '../../services/api';
 import './Auth.css';
 
 const Register = () => {
@@ -10,10 +11,13 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     role: 'student',
-    additionalInfo: {}
+    firstName: '',
+    lastName: '',
+    companyName: '',
+    institutionName: '',
+    phone: ''
   });
   const [loading, setLoading] = useState(false);
-  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -24,58 +28,112 @@ const Register = () => {
     }));
   };
 
-  const handleAdditionalInfoChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      additionalInfo: {
-        ...prev.additionalInfo,
-        [name]: value
-      }
-    }));
+  const validateForm = () => {
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match!');
+      return false;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters!');
+      return false;
+    }
+
+    if (!formData.email.includes('@')) {
+      toast.error('Please enter a valid email address!');
+      return false;
+    }
+
+    // Role-specific validation
+    if (formData.role === 'student' && (!formData.firstName || !formData.lastName)) {
+      toast.error('Please enter your first and last name!');
+      return false;
+    }
+
+    if (formData.role === 'company' && !formData.companyName) {
+      toast.error('Please enter your company name!');
+      return false;
+    }
+
+    if (formData.role === 'institute' && !formData.institutionName) {
+      toast.error('Please enter your institution name!');
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!');
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      alert('Password must be at least 6 characters!');
+    if (!validateForm()) {
       return;
     }
 
     setLoading(true);
 
     try {
-      let additionalData = {};
+      // Prepare registration data based on role
+      let registrationData = {
+        email: formData.email,
+        password: formData.password,
+        role: formData.role
+      };
 
       if (formData.role === 'student') {
-        additionalData = {
-          personalInfo: {
-            firstName: formData.additionalInfo.firstName || '',
-            lastName: formData.additionalInfo.lastName || ''
-          }
+        registrationData.personalInfo = {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone || ''
         };
       } else if (formData.role === 'company') {
-        additionalData = {
-          companyName: formData.additionalInfo.companyName || ''
+        registrationData.companyName = formData.companyName;
+        registrationData.contactInfo = {
+          email: formData.email,
+          phone: formData.phone || ''
         };
+        registrationData.industry = '';
+        registrationData.location = '';
+        registrationData.description = '';
       } else if (formData.role === 'institute') {
-        additionalData = {
-          institutionName: formData.additionalInfo.institutionName || ''
+        registrationData.name = formData.institutionName;
+        registrationData.contactInfo = {
+          email: formData.email,
+          phone: formData.phone || ''
         };
+        registrationData.location = '';
+        registrationData.description = '';
       }
 
-      await register(formData.email, formData.password, formData.role, additionalData);
-      
-      alert('Registration successful! Please check your email to verify your account.');
-      navigate('/login');
+      // Call backend registration API
+      const response = await api.post('/auth/register', registrationData);
+
+      if (response.data) {
+        toast.success('Registration successful! Please check your email to verify your account.');
+        
+        // Clear form
+        setFormData({
+          email: '',
+          password: '',
+          confirmPassword: '',
+          role: 'student',
+          firstName: '',
+          lastName: '',
+          companyName: '',
+          institutionName: '',
+          phone: ''
+        });
+
+        // Redirect to login after 2 seconds
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+      }
     } catch (error) {
       console.error('Registration error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Registration failed. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -87,7 +145,7 @@ const Register = () => {
         <h2>Register</h2>
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Role</label>
+          
             <select
               name="role"
               value={formData.role}
@@ -100,59 +158,67 @@ const Register = () => {
             </select>
           </div>
 
+          {/* Student Fields */}
           {formData.role === 'student' && (
             <>
               <div className="form-group">
-                <label>First Name</label>
+                <label>First Name *</label>
                 <input
                   type="text"
                   name="firstName"
-                  onChange={handleAdditionalInfoChange}
+                  value={formData.firstName}
+                  onChange={handleChange}
                   required
-                  placeholder="Enter first name"
+                  placeholder="Enter your first name"
                 />
               </div>
               <div className="form-group">
-                <label>Last Name</label>
+                <label>Last Name *</label>
                 <input
                   type="text"
                   name="lastName"
-                  onChange={handleAdditionalInfoChange}
+                  value={formData.lastName}
+                  onChange={handleChange}
                   required
-                  placeholder="Enter last name"
+                  placeholder="Enter your last name"
                 />
               </div>
             </>
           )}
 
+          {/* Company Fields */}
           {formData.role === 'company' && (
             <div className="form-group">
-              <label>Company Name</label>
+              <label>Company Name *</label>
               <input
                 type="text"
                 name="companyName"
-                onChange={handleAdditionalInfoChange}
+                value={formData.companyName}
+                onChange={handleChange}
                 required
                 placeholder="Enter company name"
               />
             </div>
           )}
 
+          {/* Institute Fields */}
           {formData.role === 'institute' && (
             <div className="form-group">
-              <label>Institution Name</label>
+              <label>Institution Name *</label>
               <input
                 type="text"
                 name="institutionName"
-                onChange={handleAdditionalInfoChange}
+                value={formData.institutionName}
+                onChange={handleChange}
                 required
                 placeholder="Enter institution name"
               />
             </div>
           )}
 
+          {/* Common Fields */}
           <div className="form-group">
-            <label>Email</label>
+            <label>Email *</label>
             <input
               type="email"
               name="email"
@@ -164,31 +230,45 @@ const Register = () => {
           </div>
 
           <div className="form-group">
-            <label>Password</label>
+            <label>Phone Number (Optional)</label>
+            <input
+              type="tel"
+              name="phone"
+              value={formData.phone}
+              onChange={handleChange}
+              placeholder="+266 XXXX XXXX"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Password *</label>
             <input
               type="password"
               name="password"
               value={formData.password}
               onChange={handleChange}
               required
+              minLength="6"
               placeholder="Enter password (min 6 characters)"
             />
+            <small>Password must be at least 6 characters long</small>
           </div>
 
           <div className="form-group">
-            <label>Confirm Password</label>
+            <label>Confirm Password *</label>
             <input
               type="password"
               name="confirmPassword"
               value={formData.confirmPassword}
               onChange={handleChange}
               required
+              minLength="6"
               placeholder="Confirm your password"
             />
           </div>
 
           <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Registering...' : 'Register'}
+            {loading ? 'Creating Account...' : 'Register'}
           </button>
         </form>
 
