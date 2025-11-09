@@ -53,16 +53,4 @@ app.listen(PORT, () => {
   console.log(`🔗 API: http://localhost:${PORT}`);
 });
 // backend/server.js
-require('dotenv').config();
-const admin = require('firebase-admin');
-
-const serviceAccount = JSON.parse(process.env.FIREBASE_KEY_JSON);
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-console.log("✅ Firebase initialized");
-
-
 module.exports = app;

@@ -15,7 +15,10 @@ router.post('/register', async (req, res) => {
     }
 
     // Create Firebase user
-    const userRecord = await auth.createUser({
+
+
+const { admin } = require('../config/firebase');
+const userRecord = await admin.auth().createUser({
       email,
       password,
       emailVerified: false
