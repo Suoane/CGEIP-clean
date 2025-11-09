@@ -1,0 +1,314 @@
+// frontend/src/components/institute/ViewApplications.js
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { collection, getDocs, doc, getDoc, updateDoc, query, where } from 'firebase/firestore';
+import { db } from '../../services/firebase';
+import { toast } from 'react-toastify';
+import { FaEye, FaCheck, FaTimes, FaClock } from 'react-icons/fa';
+import './Institute.css';
+
+const ViewApplications = () => {
+  const { currentUser } = useAuth();
+  const [applications, setApplications] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('all'); // all, pending, admitted, rejected
+  const [selectedApplication, setSelectedApplication] = useState(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  useEffect(() => {
+    fetchCourses();
+    fetchApplications();
+  }, [currentUser]);
+
+  const fetchCourses = async () => {
+    try {
+      const q = query(
+        collection(db, 'courses'),
+        where('institutionId', '==', currentUser.uid)
+      );
+      const snapshot = await getDocs(q);
+      const coursesData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setCourses(coursesData);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    }
+  };
+
+  const fetchApplications = async () => {
+    try {
+      const q = query(
+        collection(db, 'applications'),
+        where('institutionId', '==', currentUser.uid)
+      );
+      const snapshot = await getDocs(q);
+      
+      const applicationsData = await Promise.all(
+        snapshot.docs.map(async (appDoc) => {
+          const appData = { id: appDoc.id, ...appDoc.data() };
+          
+          // Get student details
+          const studentDoc = await getDoc(doc(db, 'students', appData.studentId));
+          appData.student = studentDoc.exists() ? studentDoc.data() : null;
+          
+          // Get course details
+          const courseDoc = await getDoc(doc(db, 'courses', appData.courseId));
+          appData.course = courseDoc.exists() ? courseDoc.data() : null;
+          
+          return appData;
+        })
+      );
+
+      setApplications(applicationsData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      toast.error('Failed to load applications');
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (applicationId, newStatus) => {
+    if (!window.confirm(`Are you sure you want to ${newStatus} this application?`)) {
+      return;
+    }
+
+    try {
+      await updateDoc(doc(db, 'applications', applicationId), {
+        status: newStatus,
+        decidedAt: new Date()
+      });
+
+      toast.success(`Application ${newStatus} successfully!`);
+      fetchApplications();
+      
+      if (showDetailsModal) {
+        setShowDetailsModal(false);
+      }
+    } catch (error) {
+      console.error('Error updating application status:', error);
+      toast.error('Failed to update application status');
+    }
+  };
+
+  const viewDetails = (application) => {
+    setSelectedApplication(application);
+    setShowDetailsModal(true);
+  };
+
+  const filteredApplications = applications.filter(app => {
+    if (filter === 'all') return true;
+    return app.status === filter;
+  });
+
+  if (loading) {
+    return <div className="loading">Loading applications...</div>;
+  }
+
+  return (
+    <div className="manage-container">
+      <div className="page-header">
+        <h1>Student Applications</h1>
+        <div className="filter-tabs">
+          <button
+            className={`filter-tab ${filter === 'all' ? 'active' : ''}`}
+            onClick={() => setFilter('all')}
+          >
+            All ({applications.length})
+          </button>
+          <button
+            className={`filter-tab ${filter === 'pending' ? 'active' : ''}`}
+            onClick={() => setFilter('pending')}
+          >
+            Pending ({applications.filter(a => a.status === 'pending').length})
+          </button>
+          <button
+            className={`filter-tab ${filter === 'admitted' ? 'active' : ''}`}
+            onClick={() => setFilter('admitted')}
+          >
+            Admitted ({applications.filter(a => a.status === 'admitted').length})
+          </button>
+          <button
+            className={`filter-tab ${filter === 'rejected' ? 'active' : ''}`}
+            onClick={() => setFilter('rejected')}
+          >
+            Rejected ({applications.filter(a => a.status === 'rejected').length})
+          </button>
+        </div>
+      </div>
+
+      {filteredApplications.length === 0 ? (
+        <div className="no-data">
+          <p>No applications found in this category.</p>
+        </div>
+      ) : (
+        <div className="applications-grid">
+          {filteredApplications.map(application => (
+            <div key={application.id} className="application-card">
+              <div className="application-header">
+                <div>
+                  <h3>
+                    {application.student?.personalInfo?.firstName} {application.student?.personalInfo?.lastName}
+                  </h3>
+                  <p className="application-course">{application.course?.courseName}</p>
+                  <p className="application-code">{application.course?.courseCode}</p>
+                </div>
+                <span className={`status-badge ${application.status}`}>
+                  {application.status}
+                </span>
+              </div>
+
+              <div className="application-info">
+                <p><strong>Email:</strong> {application.student?.personalInfo?.email}</p>
+                <p><strong>Phone:</strong> {application.student?.personalInfo?.phone || 'N/A'}</p>
+                <p><strong>Applied:</strong> {new Date(application.appliedAt?.toDate()).toLocaleDateString()}</p>
+                <p><strong>Application #:</strong> {application.applicationNumber}</p>
+              </div>
+
+              <div className="application-actions">
+                <button
+                  onClick={() => viewDetails(application)}
+                  className="btn-icon btn-info"
+                  title="View Details"
+                >
+                  <FaEye /> View Details
+                </button>
+
+                {application.status === 'pending' && (
+                  <>
+                    <button
+                      onClick={() => handleStatusChange(application.id, 'admitted')}
+                      className="btn-icon btn-success"
+                      title="Admit"
+                    >
+                      <FaCheck /> Admit
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(application.id, 'rejected')}
+                      className="btn-icon btn-delete"
+                      title="Reject"
+                    >
+                      <FaTimes /> Reject
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Application Details Modal */}
+      {showDetailsModal && selectedApplication && (
+        <div className="modal-overlay" onClick={() => setShowDetailsModal(false)}>
+          <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>Application Details</h2>
+              <button onClick={() => setShowDetailsModal(false)} className="btn-close">
+                <FaTimes />
+              </button>
+            </div>
+
+            <div className="application-details-content">
+              <div className="detail-section">
+                <h3>Student Information</h3>
+                <p><strong>Name:</strong> {selectedApplication.student?.personalInfo?.firstName} {selectedApplication.student?.personalInfo?.lastName}</p>
+                <p><strong>Email:</strong> {selectedApplication.student?.personalInfo?.email}</p>
+                <p><strong>Phone:</strong> {selectedApplication.student?.personalInfo?.phone || 'N/A'}</p>
+                <p><strong>Date of Birth:</strong> {selectedApplication.student?.personalInfo?.dateOfBirth || 'N/A'}</p>
+                <p><strong>Gender:</strong> {selectedApplication.student?.personalInfo?.gender || 'N/A'}</p>
+              </div>
+
+              <div className="detail-section">
+                <h3>Academic Information</h3>
+                <p><strong>Previous School:</strong> {selectedApplication.student?.academicInfo?.previousSchool || 'N/A'}</p>
+                <p><strong>Graduation Year:</strong> {selectedApplication.student?.academicInfo?.graduationYear || 'N/A'}</p>
+                <p><strong>Grades:</strong></p>
+                {selectedApplication.student?.academicInfo?.grades && (
+                  <div className="grades-table">
+                    {Object.entries(selectedApplication.student.academicInfo.grades).map(([subject, grade]) => (
+                      <div key={subject} className="grade-row">
+                        <span>{subject}:</span>
+                        <strong>{grade}</strong>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="detail-section">
+                <h3>Course Applied For</h3>
+                <p><strong>Course:</strong> {selectedApplication.course?.courseName}</p>
+                <p><strong>Code:</strong> {selectedApplication.course?.courseCode}</p>
+                <p><strong>Duration:</strong> {selectedApplication.course?.duration}</p>
+                <p><strong>Level:</strong> {selectedApplication.course?.level}</p>
+              </div>
+
+              <div className="detail-section">
+                <h3>Application Details</h3>
+                <p><strong>Application Number:</strong> {selectedApplication.applicationNumber}</p>
+                <p><strong>Applied On:</strong> {new Date(selectedApplication.appliedAt?.toDate()).toLocaleDateString()}</p>
+                <p><strong>Status:</strong> <span className={`status-badge ${selectedApplication.status}`}>{selectedApplication.status}</span></p>
+                {selectedApplication.decidedAt && (
+                  <p><strong>Decided On:</strong> {new Date(selectedApplication.decidedAt?.toDate()).toLocaleDateString()}</p>
+                )}
+              </div>
+
+              <div className="detail-section">
+                <h3>Documents</h3>
+                {selectedApplication.student?.documents ? (
+                  <div className="documents-list">
+                    {selectedApplication.student.documents.idCard && (
+                      <a href={selectedApplication.student.documents.idCard} target="_blank" rel="noopener noreferrer" className="doc-link">
+                        📄 ID Card
+                      </a>
+                    )}
+                    {selectedApplication.student.documents.transcript && (
+                      <a href={selectedApplication.student.documents.transcript} target="_blank" rel="noopener noreferrer" className="doc-link">
+                        📄 Transcript
+                      </a>
+                    )}
+                    {selectedApplication.student.documents.certificate && (
+                      <a href={selectedApplication.student.documents.certificate} target="_blank" rel="noopener noreferrer" className="doc-link">
+                        📄 Certificate
+                      </a>
+                    )}
+                  </div>
+                ) : (
+                  <p>No documents uploaded</p>
+                )}
+              </div>
+            </div>
+
+            <div className="modal-actions">
+              {selectedApplication.status === 'pending' && (
+                <>
+                  <button
+                    onClick={() => handleStatusChange(selectedApplication.id, 'admitted')}
+                    className="btn-success"
+                  >
+                    <FaCheck /> Admit Student
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(selectedApplication.id, 'rejected')}
+                    className="btn-danger"
+                  >
+                    <FaTimes /> Reject Application
+                  </button>
+                </>
+              )}
+              <button onClick={() => setShowDetailsModal(false)} className="btn-secondary">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ViewApplications;

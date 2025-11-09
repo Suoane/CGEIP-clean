@@ -13,6 +13,14 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
 
+// Admin Components
+import AdminDashboard from './components/admin/AdminDashboard';
+import ManageInstitutions from './components/admin/ManageInstitutions';
+import ManageFaculties from './components/admin/ManageFaculties';
+import ManageCourses from './components/admin/ManageCourses';
+import ManageCompanies from './components/admin/ManageCompanies';
+import SystemReports from './components/admin/SystemReports';
+
 // Student Components
 import StudentDashboard from './components/student/StudentDashboard';
 import ApplyCourse from './components/student/ApplyCourse';
@@ -21,15 +29,14 @@ import StudentProfile from './components/student/StudentProfile';
 import ViewJobs from './components/student/ViewJobs';
 import UploadDocuments from './components/student/UploadDocuments';
 
-// Admin Components (you'll create these)
-import AdminDashboard from './components/admin/AdminDashboard';
-import ManageInstitutions from './components/admin/ManageInstitutions';
-
-// Institute Components (you'll create these)
+// Institute Components
 import InstituteDashboard from './components/institute/InstituteDashboard';
 
-// Company Components (you'll create these)
+// Company Components
 import CompanyDashboard from './components/company/CompanyDashboard';
+import PostJob from './components/company/PostJob';
+import ViewApplicants from './components/company/ViewApplicants';
+import CompanyProfile from './components/company/CompanyProfile';
 
 import './App.css';
 
@@ -45,6 +52,56 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+
+              {/* Admin Routes */}
+              <Route
+                path="/admin/dashboard"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/institutions"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <ManageInstitutions />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/faculties"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <ManageFaculties />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/courses"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <ManageCourses />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/companies"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <ManageCompanies />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/reports"
+                element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <SystemReports />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Student Routes */}
               <Route
@@ -96,24 +153,6 @@ function App() {
                 }
               />
 
-              {/* Admin Routes */}
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/institutions"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <ManageInstitutions />
-                  </ProtectedRoute>
-                }
-              />
-
               {/* Institute Routes */}
               <Route
                 path="/institute/dashboard"
@@ -133,6 +172,30 @@ function App() {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/company/post-job"
+                element={
+                  <ProtectedRoute allowedRoles={['company']}>
+                    <PostJob />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/company/applicants"
+                element={
+                  <ProtectedRoute allowedRoles={['company']}>
+                    <ViewApplicants />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/company/profile"
+                element={
+                  <ProtectedRoute allowedRoles={['company']}>
+                    <CompanyProfile />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
@@ -148,8 +211,9 @@ function App() {
 // Home Component
 const Home = () => (
   <div className="home-container">
-    <h1>Higher Education Management System</h1>
-    <p>Welcome to the Higher Education Management System. Please login or register to continue.</p>
+    <h1>CGEIP - Centralized Gateway for Education and Industry Placement</h1>
+    <p>Welcome to the Centralized Gateway for Education and Industry Placement (CGEIP).</p>
+    <p>Please login or register to continue.</p>
   </div>
 );
 
