@@ -19,6 +19,7 @@ const instituteRoutes = require('./src/routes/institute.routes');
 const studentRoutes = require('./src/routes/student.routes');
 const companyRoutes = require('./src/routes/company.routes');
 const authRoutes = require('./src/routes/auth.routes');
+const uploadRoutes = require('./src/routes/upload.routes');
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -26,6 +27,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/institute', instituteRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/company', companyRoutes);
+app.use('/api/upload', uploadRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
