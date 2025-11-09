@@ -1,3 +1,4 @@
+// backend/src/routes/company.routes.js
 const express = require('express');
 const router = express.Router();
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
@@ -11,6 +12,9 @@ router.use(authorizeRoles('company'));
 router.get('/profile', companyController.getProfile);
 router.put('/profile', companyController.updateProfile);
 
+// Dashboard Statistics
+router.get('/dashboard/stats', companyController.getDashboardStats);
+
 // Job Management
 router.post('/jobs', companyController.postJob);
 router.get('/jobs', companyController.getMyJobs);
@@ -19,9 +23,13 @@ router.put('/jobs/:id', companyController.updateJob);
 router.delete('/jobs/:id', companyController.deleteJob);
 router.put('/jobs/:id/close', companyController.closeJob);
 
-// Applicants
-router.get('/jobs/:jobId/applicants', companyController.getJobApplicants);
-router.get('/applicants/:id', companyController.getApplicantDetails);
-router.put('/applications/:id/status', companyController.updateApplicationStatus);
+// Qualified Applicants - Smart Filtering
+router.get('/jobs/:jobId/qualified-applicants', companyController.getQualifiedApplicants);
+router.get('/applicants/:applicationId/profile', companyController.getApplicantProfile);
+
+// Application Management
+router.put('/applications/:applicationId/status', companyController.updateApplicationStatus);
+router.post('/applications/:applicationId/schedule-interview', companyController.scheduleInterview);
+router.get('/applications/:applicationId/documents', companyController.getApplicantDocuments);
 
 module.exports = router;
