@@ -1,7 +1,6 @@
-// frontend/src/App.js
+// frontend/src/App.js - COMPLETE FIX
 import React from 'react';
-// eslint-disable-next-line
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -28,7 +27,6 @@ import StudentDashboard from './components/student/StudentDashboard';
 import ApplyCourse from './components/student/ApplyCourse';
 import ViewAdmissions from './components/student/ViewAdmissions';
 import StudentProfile from './components/student/StudentProfile';
-import ViewJobs from './components/student/ViewJobs';
 import UploadDocuments from './components/student/UploadDocuments';
 
 // Institute Components
@@ -42,7 +40,7 @@ import PublishAdmissions from './components/institute/PublishAdmissions';
 // Company Components
 import CompanyDashboard from './components/company/CompanyDashboard';
 import PostJob from './components/company/PostJob';
-import ViewApplicants from './components/company/ViewApplicants';
+import QualifiedApplicants from './components/company/QualifiedApplicants';
 import CompanyProfile from './components/company/CompanyProfile';
 
 import './App.css';
@@ -62,212 +60,39 @@ function App() {
               <Route path="/verify-email" element={<EmailVerification />} />
 
               {/* Admin Routes */}
-              <Route
-                path="/admin/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/institutions"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <ManageInstitutions />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/faculties"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <AdminManageFaculties />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/courses"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <AdminManageCourses />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/companies"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <ManageCompanies />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/admin/reports"
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <SystemReports />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/admin/dashboard" element={<ProtectedRoute allowedRoles={['admin']}><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin/institutions" element={<ProtectedRoute allowedRoles={['admin']}><ManageInstitutions /></ProtectedRoute>} />
+              <Route path="/admin/faculties" element={<ProtectedRoute allowedRoles={['admin']}><AdminManageFaculties /></ProtectedRoute>} />
+              <Route path="/admin/courses" element={<ProtectedRoute allowedRoles={['admin']}><AdminManageCourses /></ProtectedRoute>} />
+              <Route path="/admin/companies" element={<ProtectedRoute allowedRoles={['admin']}><ManageCompanies /></ProtectedRoute>} />
+              <Route path="/admin/reports" element={<ProtectedRoute allowedRoles={['admin']}><SystemReports /></ProtectedRoute>} />
 
               {/* Student Routes */}
-              <Route
-                path="/student/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={['student']}>
-                    <StudentDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/apply-course"
-                element={
-                  <ProtectedRoute allowedRoles={['student']}>
-                    <ApplyCourse />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/admissions"
-                element={
-                  <ProtectedRoute allowedRoles={['student']}>
-                    <ViewAdmissions />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/profile"
-                element={
-                  <ProtectedRoute allowedRoles={['student']}>
-                    <StudentProfile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/jobs"
-                element={
-                  <ProtectedRoute allowedRoles={['student']}>
-                    <ViewJobs />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/upload-documents"
-                element={
-                  <ProtectedRoute allowedRoles={['student']}>
-                    <UploadDocuments />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/student/dashboard" element={<ProtectedRoute allowedRoles={['student']}><StudentDashboard /></ProtectedRoute>} />
+              <Route path="/student/apply-course" element={<ProtectedRoute allowedRoles={['student']}><ApplyCourse /></ProtectedRoute>} />
+              <Route path="/student/admissions" element={<ProtectedRoute allowedRoles={['student']}><ViewAdmissions /></ProtectedRoute>} />
+              <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student']}><StudentProfile /></ProtectedRoute>} />
+              <Route path="/student/upload-documents" element={<ProtectedRoute allowedRoles={['student']}><UploadDocuments /></ProtectedRoute>} />
 
               {/* Institute Routes */}
-              <Route
-                path="/institute/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={['institute']}>
-                    <InstituteDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/institute/faculties"
-                element={
-                  <ProtectedRoute allowedRoles={['institute']}>
-                    <InstituteManageFaculties />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/institute/add-faculty"
-                element={
-                  <ProtectedRoute allowedRoles={['institute']}>
-                    <InstituteManageFaculties />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/institute/courses"
-                element={
-                  <ProtectedRoute allowedRoles={['institute']}>
-                    <InstituteManageCourses />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/institute/add-course"
-                element={
-                  <ProtectedRoute allowedRoles={['institute']}>
-                    <InstituteManageCourses />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/institute/applications"
-                element={
-                  <ProtectedRoute allowedRoles={['institute']}>
-                    <ViewApplications />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/institute/publish-admissions"
-                element={
-                  <ProtectedRoute allowedRoles={['institute']}>
-                    <PublishAdmissions />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/institute/profile"
-                element={
-                  <ProtectedRoute allowedRoles={['institute']}>
-                    <InstituteProfile />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/institute/students"
-                element={
-                  <ProtectedRoute allowedRoles={['institute']}>
-                    <ViewApplications />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/institute/dashboard" element={<ProtectedRoute allowedRoles={['institute']}><InstituteDashboard /></ProtectedRoute>} />
+              <Route path="/institute/faculties" element={<ProtectedRoute allowedRoles={['institute']}><InstituteManageFaculties /></ProtectedRoute>} />
+              <Route path="/institute/add-faculty" element={<ProtectedRoute allowedRoles={['institute']}><InstituteManageFaculties /></ProtectedRoute>} />
+              <Route path="/institute/courses" element={<ProtectedRoute allowedRoles={['institute']}><InstituteManageCourses /></ProtectedRoute>} />
+              <Route path="/institute/add-course" element={<ProtectedRoute allowedRoles={['institute']}><InstituteManageCourses /></ProtectedRoute>} />
+              <Route path="/institute/applications" element={<ProtectedRoute allowedRoles={['institute']}><ViewApplications /></ProtectedRoute>} />
+              <Route path="/institute/publish-admissions" element={<ProtectedRoute allowedRoles={['institute']}><PublishAdmissions /></ProtectedRoute>} />
+              <Route path="/institute/profile" element={<ProtectedRoute allowedRoles={['institute']}><InstituteProfile /></ProtectedRoute>} />
+              <Route path="/institute/students" element={<ProtectedRoute allowedRoles={['institute']}><ViewApplications /></ProtectedRoute>} />
 
-              {/* Company Routes */}
-              <Route
-                path="/company/dashboard"
-                element={
-                  <ProtectedRoute allowedRoles={['company']}>
-                    <CompanyDashboard />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/company/post-job"
-                element={
-                  <ProtectedRoute allowedRoles={['company']}>
-                    <PostJob />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/company/applicants"
-                element={
-                  <ProtectedRoute allowedRoles={['company']}>
-                    <ViewApplicants />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/company/profile"
-                element={
-                  <ProtectedRoute allowedRoles={['company']}>
-                    <CompanyProfile />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Company Routes - COMPLETE FIX */}
+              <Route path="/company/dashboard" element={<ProtectedRoute allowedRoles={['company']}><CompanyDashboard /></ProtectedRoute>} />
+              <Route path="/company/post-job" element={<ProtectedRoute allowedRoles={['company']}><PostJob /></ProtectedRoute>} />
+              <Route path="/company/jobs" element={<ProtectedRoute allowedRoles={['company']}><QualifiedApplicants /></ProtectedRoute>} />
+              <Route path="/company/applicants" element={<ProtectedRoute allowedRoles={['company']}><QualifiedApplicants /></ProtectedRoute>} />
+              <Route path="/company/qualified-applicants" element={<ProtectedRoute allowedRoles={['company']}><QualifiedApplicants /></ProtectedRoute>} />
+              <Route path="/company/applications" element={<ProtectedRoute allowedRoles={['company']}><QualifiedApplicants /></ProtectedRoute>} />
+              <Route path="/company/profile" element={<ProtectedRoute allowedRoles={['company']}><CompanyProfile /></ProtectedRoute>} />
 
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />

@@ -1,4 +1,4 @@
-// frontend/src/components/company/CompanyDashboard.js
+// frontend/src/components/company/CompanyDashboard.js - FIXED
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -75,8 +75,15 @@ const CompanyDashboard = () => {
   if (companyStatus === 'pending') {
     return (
       <div className="dashboard-container">
-        <div className="status-banner pending">
-          <FaExclamationCircle className="status-icon" />
+        <div className="status-banner pending" style={{
+          background: '#fef3c7',
+          border: '2px solid #fbbf24',
+          borderRadius: '12px',
+          padding: '2rem',
+          textAlign: 'center',
+          color: '#92400e'
+        }}>
+          <FaExclamationCircle style={{ fontSize: '3rem', marginBottom: '1rem' }} />
           <h2>Account Pending Approval</h2>
           <p>Your company account is currently under review. You'll be notified once approved.</p>
         </div>
@@ -87,8 +94,15 @@ const CompanyDashboard = () => {
   if (companyStatus === 'suspended') {
     return (
       <div className="dashboard-container">
-        <div className="status-banner suspended">
-          <FaExclamationCircle className="status-icon" />
+        <div className="status-banner suspended" style={{
+          background: '#fee2e2',
+          border: '2px solid #ef4444',
+          borderRadius: '12px',
+          padding: '2rem',
+          textAlign: 'center',
+          color: '#991b1b'
+        }}>
+          <FaExclamationCircle style={{ fontSize: '3rem', marginBottom: '1rem' }} />
           <h2>Account Suspended</h2>
           <p>Your company account has been suspended. Please contact support for more information.</p>
         </div>
@@ -98,10 +112,17 @@ const CompanyDashboard = () => {
 
   return (
     <div className="dashboard-container">
-      <div className="status-banner approved">
-        <FaCheckCircle className="status-icon" />
-        <h2>Company Dashboard</h2>
-        <p>Your account is active and approved</p>
+      <div className="status-banner approved" style={{
+        background: '#d1fae5',
+        border: '2px solid #10b981',
+        borderRadius: '12px',
+        padding: '1.5rem',
+        textAlign: 'center',
+        color: '#065f46',
+        marginBottom: '2rem'
+      }}>
+        <FaCheckCircle style={{ fontSize: '2rem', marginRight: '0.5rem', verticalAlign: 'middle' }} />
+        <span style={{ fontSize: '1.25rem', fontWeight: '600' }}>Company Dashboard - Account Active</span>
       </div>
       
       <div className="stats-grid">
@@ -117,7 +138,7 @@ const CompanyDashboard = () => {
           <FaUsers className="stat-icon" />
           <h3>Total Applications</h3>
           <p className="stat-number">{stats.totalApplications}</p>
-          <Link to="/company/applications" className="stat-link">View Applications</Link>
+          <Link to="/company/applicants" className="stat-link">View All Applications</Link>
         </div>
 
         <div className="stat-card">
@@ -140,16 +161,34 @@ const CompanyDashboard = () => {
         <h2>Quick Actions</h2>
         <div className="action-buttons">
           <Link to="/company/post-job" className="action-btn">
-            Post New Job
+            📝 Post New Job
           </Link>
           <Link to="/company/jobs" className="action-btn">
-            Manage Job Postings
+            💼 Manage Job Postings
           </Link>
           <Link to="/company/qualified-applicants" className="action-btn">
-            View Qualified Applicants
+            ⭐ View Qualified Applicants
+          </Link>
+          <Link to="/company/profile" className="action-btn">
+            🏢 Company Profile
           </Link>
         </div>
       </div>
+
+      {stats.qualifiedApplicants > 0 && (
+        <div className="info-banner" style={{
+          background: '#dbeafe',
+          border: '2px solid #3b82f6',
+          borderRadius: '12px',
+          padding: '1rem 1.5rem',
+          marginTop: '2rem',
+          color: '#1e40af'
+        }}>
+          <p style={{ margin: 0, fontWeight: '600' }}>
+            🎯 You have {stats.qualifiedApplicants} qualified applicants ready for review!
+          </p>
+        </div>
+      )}
     </div>
   );
 };
