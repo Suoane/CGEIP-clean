@@ -1,4 +1,4 @@
-// frontend/src/App.js - COMPLETE FIX
+// frontend/src/App.js - WITH FOOTER
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -7,6 +7,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 // Common Components
 import Navbar from './components/common/Navbar';
+import Footer from './components/common/Footer';
 import ProtectedRoute from './components/common/ProtectedRoute';
 
 // Auth Components
@@ -49,9 +50,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="App">
+        <div className="App" style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
           <Navbar />
-          <div className="main-content">
+          <div className="main-content" style={{ flex: 1 }}>
             <Routes>
               {/* Public Routes */}
               <Route path="/" element={<Home />} />
@@ -77,27 +78,23 @@ function App() {
               {/* Institute Routes */}
               <Route path="/institute/dashboard" element={<ProtectedRoute allowedRoles={['institute']}><InstituteDashboard /></ProtectedRoute>} />
               <Route path="/institute/faculties" element={<ProtectedRoute allowedRoles={['institute']}><InstituteManageFaculties /></ProtectedRoute>} />
-              <Route path="/institute/add-faculty" element={<ProtectedRoute allowedRoles={['institute']}><InstituteManageFaculties /></ProtectedRoute>} />
               <Route path="/institute/courses" element={<ProtectedRoute allowedRoles={['institute']}><InstituteManageCourses /></ProtectedRoute>} />
-              <Route path="/institute/add-course" element={<ProtectedRoute allowedRoles={['institute']}><InstituteManageCourses /></ProtectedRoute>} />
               <Route path="/institute/applications" element={<ProtectedRoute allowedRoles={['institute']}><ViewApplications /></ProtectedRoute>} />
               <Route path="/institute/publish-admissions" element={<ProtectedRoute allowedRoles={['institute']}><PublishAdmissions /></ProtectedRoute>} />
               <Route path="/institute/profile" element={<ProtectedRoute allowedRoles={['institute']}><InstituteProfile /></ProtectedRoute>} />
-              <Route path="/institute/students" element={<ProtectedRoute allowedRoles={['institute']}><ViewApplications /></ProtectedRoute>} />
 
-              {/* Company Routes - COMPLETE FIX */}
+              {/* Company Routes */}
               <Route path="/company/dashboard" element={<ProtectedRoute allowedRoles={['company']}><CompanyDashboard /></ProtectedRoute>} />
               <Route path="/company/post-job" element={<ProtectedRoute allowedRoles={['company']}><PostJob /></ProtectedRoute>} />
               <Route path="/company/jobs" element={<ProtectedRoute allowedRoles={['company']}><QualifiedApplicants /></ProtectedRoute>} />
-              <Route path="/company/applicants" element={<ProtectedRoute allowedRoles={['company']}><QualifiedApplicants /></ProtectedRoute>} />
               <Route path="/company/qualified-applicants" element={<ProtectedRoute allowedRoles={['company']}><QualifiedApplicants /></ProtectedRoute>} />
-              <Route path="/company/applications" element={<ProtectedRoute allowedRoles={['company']}><QualifiedApplicants /></ProtectedRoute>} />
               <Route path="/company/profile" element={<ProtectedRoute allowedRoles={['company']}><CompanyProfile /></ProtectedRoute>} />
 
               {/* 404 Route */}
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
+          <Footer />
           <ToastContainer position="top-right" autoClose={3000} />
         </div>
       </AuthProvider>
@@ -108,7 +105,7 @@ function App() {
 // Home Component
 const Home = () => (
   <div className="home-container">
-    <h1>CGEIP - Centralized Gateway for Education and Industry Placement</h1>
+    <h1>🎓 CGEIP - Centralized Gateway for Education and Industry Placement</h1>
     <p>Welcome to the Centralized Gateway for Education and Industry Placement (CGEIP).</p>
     <p>Please login or register to continue.</p>
   </div>

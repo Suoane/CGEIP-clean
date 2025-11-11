@@ -1,10 +1,12 @@
-// frontend/src/components/student/UploadDocuments.js
+// frontend/src/components/student/UploadDocuments.js - FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../../services/firebase';
 import { toast } from 'react-toastify';
-import axios from 'axios';
+import { FaFileUpload, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import './Student.css';
 
 const UploadDocuments = () => {
@@ -21,6 +23,11 @@ const UploadDocuments = () => {
     transcript: null,
     certificate: null
   });
+  const [uploadProgress, setUploadProgress] = useState({
+    idCard: 0,
+    transcript: 0,
+    certificate: 0
+  });
 
   useEffect(() => {
     fetchStudentData();
@@ -34,7 +41,25 @@ const UploadDocuments = () => {
       }
     } catch (error) {
       console.error('Error fetching student data:', error);
+      toast.error('Failed to load student data');
     }
+  };
+
+  const validateFile = (file) => {
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    const maxSize = 5 * 1024 * 1024; // 5MB
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Only PDF, JPEG, JPG, and PNG files are allowed');
+      return false;
+    }
+
+    if (file.size > maxSize) {
+      toast.error('File size must be less than 5MB');
+      return false;
+    }
+
+    return true;
   };
 
   const handleFileChange = (e, documentType) => {
@@ -42,16 +67,8 @@ const UploadDocuments = () => {
     
     if (!file) return;
 
-    // Validate file type
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
-    if (!allowedTypes.includes(file.type)) {
-      toast.error('Only PDF, JPEG, JPG, and PNG files are allowed');
-      return;
-    }
-
-    // Validate file size (5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB');
+    if (!validateFile(file)) {
+      e.target.value = '';
       return;
     }
 
@@ -76,6 +93,20 @@ const UploadDocuments = () => {
         [documentType]: 'PDF'
       }));
     }
+
+    toast.success(`${documentType} selected: ${file.name}`);
+  };
+
+  const uploadFile = async (file, path) => {
+    try {
+      const storageRef = ref(storage, path);
+      const snapshot = await uploadBytes(storageRef, file);
+      const downloadURL = await getDownloadURL(snapshot.ref);
+      return downloadURL;
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      throw error;
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -89,47 +120,74 @@ const UploadDocuments = () => {
     setLoading(true);
 
     try {
-      const formData = new FormData();
-      
-      if (files.idCard) formData.append('idCard', files.idCard);
-      if (files.transcript) formData.append('transcript', files.transcript);
-      if (files.certificate) formData.append('certificate', files.certificate);
+      const uploadedDocs = { ...studentData?.documents };
 
-      // Get auth token
-      const token = await currentUser.getIdToken();
-
-      const response = await axios.post(
-        `${process.env.REACT_APP_API_URL}/upload/student/documents`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      if (response.data.success) {
-        toast.success('Documents uploaded successfully!');
-        
-        // Reset form
-        setFiles({
-          idCard: null,
-          transcript: null,
-          certificate: null
-        });
-        setPreviews({
-          idCard: null,
-          transcript: null,
-          certificate: null
-        });
-
-        // Refresh student data
-        fetchStudentData();
+      // Upload each file
+      if (files.idCard) {
+        toast.info('Uploading ID Card...');
+        const idCardURL = await uploadFile(
+          files.idCard,
+          `students/${currentUser.uid}/documents/idCard_${Date.now()}.${files.idCard.name.split('.').pop()}`
+        );
+        uploadedDocs.idCard = idCardURL;
+        setUploadProgress(prev => ({ ...prev, idCard: 100 }));
       }
+
+      if (files.transcript) {
+        toast.info('Uploading Transcript...');
+        const transcriptURL = await uploadFile(
+          files.transcript,
+          `students/${currentUser.uid}/documents/transcript_${Date.now()}.${files.transcript.name.split('.').pop()}`
+        );
+        uploadedDocs.transcript = transcriptURL;
+        setUploadProgress(prev => ({ ...prev, transcript: 100 }));
+      }
+
+      if (files.certificate) {
+        toast.info('Uploading Certificate...');
+        const certificateURL = await uploadFile(
+          files.certificate,
+          `students/${currentUser.uid}/documents/certificate_${Date.now()}.${files.certificate.name.split('.').pop()}`
+        );
+        uploadedDocs.certificate = certificateURL;
+        setUploadProgress(prev => ({ ...prev, certificate: 100 }));
+      }
+
+      // Update Firestore
+      await updateDoc(doc(db, 'students', currentUser.uid), {
+        documents: uploadedDocs,
+        documentsUpdatedAt: new Date()
+      });
+
+      toast.success('Documents uploaded successfully!');
+      
+      // Reset form
+      setFiles({
+        idCard: null,
+        transcript: null,
+        certificate: null
+      });
+      setPreviews({
+        idCard: null,
+        transcript: null,
+        certificate: null
+      });
+      setUploadProgress({
+        idCard: 0,
+        transcript: 0,
+        certificate: 0
+      });
+
+      // Clear file inputs
+      document.querySelectorAll('input[type="file"]').forEach(input => {
+        input.value = '';
+      });
+
+      // Refresh student data
+      fetchStudentData();
     } catch (error) {
       console.error('Error uploading documents:', error);
-      toast.error(error.response?.data?.error || 'Failed to upload documents');
+      toast.error('Failed to upload documents. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -138,19 +196,24 @@ const UploadDocuments = () => {
   return (
     <div className="upload-documents-container">
       <div className="page-header">
-        <h1>Upload Documents</h1>
+        <h1>📁 Upload Documents</h1>
         <p>Upload your identification, academic transcripts, and certificates</p>
       </div>
 
       <div className="documents-section">
-        {studentData?.documents && (
+        {studentData?.documents && Object.keys(studentData.documents).length > 0 && (
           <div className="current-documents">
-            <h2>Current Documents</h2>
+            <h2>✅ Current Documents</h2>
             <div className="documents-grid">
               {studentData.documents.idCard && (
                 <div className="document-card">
-                  <div className="document-icon">📄</div>
+                  <div className="document-icon">
+                    <FaCheckCircle style={{ color: '#10b981' }} />
+                  </div>
                   <h3>ID Card</h3>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.5rem 0' }}>
+                    Uploaded
+                  </p>
                   <a 
                     href={studentData.documents.idCard} 
                     target="_blank" 
@@ -163,8 +226,13 @@ const UploadDocuments = () => {
               )}
               {studentData.documents.transcript && (
                 <div className="document-card">
-                  <div className="document-icon">📜</div>
+                  <div className="document-icon">
+                    <FaCheckCircle style={{ color: '#10b981' }} />
+                  </div>
                   <h3>Transcript</h3>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.5rem 0' }}>
+                    Uploaded
+                  </p>
                   <a 
                     href={studentData.documents.transcript} 
                     target="_blank" 
@@ -177,8 +245,13 @@ const UploadDocuments = () => {
               )}
               {studentData.documents.certificate && (
                 <div className="document-card">
-                  <div className="document-icon">🎓</div>
+                  <div className="document-icon">
+                    <FaCheckCircle style={{ color: '#10b981' }} />
+                  </div>
                   <h3>Certificate</h3>
+                  <p style={{ fontSize: '0.875rem', color: '#6b7280', margin: '0.5rem 0' }}>
+                    Uploaded
+                  </p>
                   <a 
                     href={studentData.documents.certificate} 
                     target="_blank" 
@@ -194,12 +267,14 @@ const UploadDocuments = () => {
         )}
 
         <form onSubmit={handleSubmit} className="upload-form">
-          <h2>Upload New Documents</h2>
+          <h2>📤 Upload New Documents</h2>
           
           <div className="upload-grid">
             <div className="upload-card">
               <label htmlFor="idCard" className="upload-label">
-                <div className="upload-icon">📄</div>
+                <div className="upload-icon">
+                  {files.idCard ? <FaCheckCircle color="#10b981" /> : <FaFileUpload />}
+                </div>
                 <h3>ID Card</h3>
                 <p>Upload your national ID or passport</p>
                 <input
@@ -208,6 +283,7 @@ const UploadDocuments = () => {
                   accept=".pdf,.jpg,.jpeg,.png"
                   onChange={(e) => handleFileChange(e, 'idCard')}
                   className="file-input"
+                  disabled={loading}
                 />
                 {files.idCard && (
                   <div className="file-selected">
@@ -219,7 +295,9 @@ const UploadDocuments = () => {
 
             <div className="upload-card">
               <label htmlFor="transcript" className="upload-label">
-                <div className="upload-icon">📜</div>
+                <div className="upload-icon">
+                  {files.transcript ? <FaCheckCircle color="#10b981" /> : <FaFileUpload />}
+                </div>
                 <h3>Academic Transcript</h3>
                 <p>Upload your latest transcript</p>
                 <input
@@ -228,6 +306,7 @@ const UploadDocuments = () => {
                   accept=".pdf,.jpg,.jpeg,.png"
                   onChange={(e) => handleFileChange(e, 'transcript')}
                   className="file-input"
+                  disabled={loading}
                 />
                 {files.transcript && (
                   <div className="file-selected">
@@ -239,7 +318,9 @@ const UploadDocuments = () => {
 
             <div className="upload-card">
               <label htmlFor="certificate" className="upload-label">
-                <div className="upload-icon">🎓</div>
+                <div className="upload-icon">
+                  {files.certificate ? <FaCheckCircle color="#10b981" /> : <FaFileUpload />}
+                </div>
                 <h3>Certificate</h3>
                 <p>Upload your completion certificate</p>
                 <input
@@ -248,6 +329,7 @@ const UploadDocuments = () => {
                   accept=".pdf,.jpg,.jpeg,.png"
                   onChange={(e) => handleFileChange(e, 'certificate')}
                   className="file-input"
+                  disabled={loading}
                 />
                 {files.certificate && (
                   <div className="file-selected">
@@ -261,6 +343,7 @@ const UploadDocuments = () => {
           <div className="upload-info">
             <p>📌 Accepted formats: PDF, JPEG, PNG</p>
             <p>📌 Maximum file size: 5MB per document</p>
+            <p>📌 Make sure documents are clear and readable</p>
           </div>
 
           <button 
@@ -268,7 +351,7 @@ const UploadDocuments = () => {
             className="btn-primary" 
             disabled={loading || (!files.idCard && !files.transcript && !files.certificate)}
           >
-            {loading ? 'Uploading...' : 'Upload Documents'}
+            {loading ? '⏳ Uploading...' : '📤 Upload Documents'}
           </button>
         </form>
       </div>
