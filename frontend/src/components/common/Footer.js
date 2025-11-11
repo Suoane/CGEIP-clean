@@ -1,4 +1,4 @@
-// frontend/src/components/common/Footer.js
+// frontend/src/components/common/Footer.js - COMPACT VERSION
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { 
@@ -28,7 +28,6 @@ const Footer = () => {
               <h3>CGEIP</h3>
             </div>
             <p className="footer-description">
-              Centralized Gateway for Education and Industry Placement - 
               Connecting students, educational institutions, and industry for a brighter future.
             </p>
             <div className="social-links">
@@ -54,9 +53,7 @@ const Footer = () => {
               <li><Link to="/">Home</Link></li>
               <li><Link to="/register">Register</Link></li>
               <li><Link to="/login">Login</Link></li>
-              <li><a href="#about">About Us</a></li>
-              <li><a href="#how-it-works">How It Works</a></li>
-              <li><a href="#faq">FAQ</a></li>
+              <li><a href="#about">About</a></li>
             </ul>
           </div>
 
@@ -64,29 +61,15 @@ const Footer = () => {
           <div className="footer-section">
             <h4>For Students</h4>
             <ul className="footer-links">
-              <li><a href="#institutions">Browse Institutions</a></li>
-              <li><a href="#courses">Available Courses</a></li>
-              <li><a href="#apply">How to Apply</a></li>
-              <li><a href="#job-opportunities">Job Opportunities</a></li>
-              <li><a href="#student-support">Student Support</a></li>
-            </ul>
-          </div>
-
-          {/* For Institutions & Companies */}
-          <div className="footer-section">
-            <h4>For Partners</h4>
-            <ul className="footer-links">
-              <li><a href="#register-institution">Register Institution</a></li>
-              <li><a href="#register-company">Register Company</a></li>
-              <li><a href="#post-jobs">Post Jobs</a></li>
-              <li><a href="#find-talent">Find Talent</a></li>
-              <li><a href="#partner-benefits">Partner Benefits</a></li>
+              <li><a href="#courses">Browse Courses</a></li>
+              <li><a href="#apply">Apply Now</a></li>
+              <li><a href="#jobs">Job Opportunities</a></li>
             </ul>
           </div>
 
           {/* Contact Info */}
           <div className="footer-section">
-            <h4>Contact Us</h4>
+            <h4>Contact</h4>
             <ul className="footer-contact">
               <li>
                 <FaMapMarkerAlt />
@@ -101,12 +84,6 @@ const Footer = () => {
                 <span>info@cgeip.edu</span>
               </li>
             </ul>
-            <div className="office-hours">
-              <h5>Office Hours</h5>
-              <p>Monday - Friday: 8:00 AM - 5:00 PM</p>
-              <p>Saturday: 9:00 AM - 1:00 PM</p>
-              <p>Sunday: Closed</p>
-            </div>
           </div>
         </div>
 
@@ -117,11 +94,9 @@ const Footer = () => {
               &copy; {currentYear} CGEIP. All rights reserved.
             </p>
             <div className="footer-bottom-links">
-              <Link to="/privacy-policy">Privacy Policy</Link>
+              <Link to="/privacy-policy">Privacy</Link>
               <span className="separator">|</span>
-              <Link to="/terms-of-service">Terms of Service</Link>
-              <span className="separator">|</span>
-              <Link to="/cookie-policy">Cookie Policy</Link>
+              <Link to="/terms-of-service">Terms</Link>
               <span className="separator">|</span>
               <Link to="/accessibility">Accessibility</Link>
             </div>

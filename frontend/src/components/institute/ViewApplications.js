@@ -1,10 +1,10 @@
-// frontend/src/components/institute/ViewApplications.js
+// frontend/src/components/institute/ViewApplications.js - FIXED
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { collection, getDocs, doc, getDoc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, getDoc, updateDoc, query, where, addDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { toast } from 'react-toastify';
-import { FaEye, FaCheck, FaTimes } from 'react-icons/fa';
+import { FaEye, FaCheck, FaTimes, FaClock } from 'react-icons/fa';
 import '../admin/Admin.css';
 
 const ViewApplications = () => {
@@ -14,6 +14,7 @@ const ViewApplications = () => {
   const [filter, setFilter] = useState('all');
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [processingAction, setProcessingAction] = useState(false);
 
   useEffect(() => {
     fetchApplications();
@@ -52,26 +53,50 @@ const ViewApplications = () => {
     }
   };
 
-  const handleStatusChange = async (applicationId, newStatus) => {
-    if (!window.confirm(`Are you sure you want to mark this application as ${newStatus}?`)) {
+  const handleStatusChange = async (applicationId, newStatus, applicationData) => {
+    const statusText = newStatus === 'admitted' ? 'admit' : 
+                       newStatus === 'rejected' ? 'reject' : 'waitlist';
+    
+    if (!window.confirm(`Are you sure you want to ${statusText} this application?`)) {
       return;
     }
 
+    setProcessingAction(true);
+
     try {
+      // Update application status
       await updateDoc(doc(db, 'applications', applicationId), {
         status: newStatus,
-        decidedAt: new Date()
+        decidedAt: new Date(),
+        decidedBy: currentUser.uid
+      });
+
+      // Create notification for student
+      await addDoc(collection(db, 'notifications'), {
+        userId: applicationData.studentId,
+        type: 'admission',
+        title: `Application ${newStatus.charAt(0).toUpperCase() + newStatus.slice(1)}`,
+        message: `Your application for ${applicationData.course?.courseName} has been ${newStatus}`,
+        read: false,
+        relatedId: applicationId,
+        createdAt: new Date()
       });
 
       toast.success(`Application ${newStatus} successfully!`);
-      fetchApplications();
       
+      // Refresh applications
+      await fetchApplications();
+      
+      // Close modal if open
       if (showDetailsModal) {
         setShowDetailsModal(false);
+        setSelectedApplication(null);
       }
     } catch (error) {
       console.error('Error updating application status:', error);
       toast.error('Failed to update application status');
+    } finally {
+      setProcessingAction(false);
     }
   };
 
@@ -113,6 +138,12 @@ const ViewApplications = () => {
             Admitted ({applications.filter(a => a.status === 'admitted').length})
           </button>
           <button
+            className={`filter-tab ${filter === 'waitlisted' ? 'active' : ''}`}
+            onClick={() => setFilter('waitlisted')}
+          >
+            Waitlisted ({applications.filter(a => a.status === 'waitlisted').length})
+          </button>
+          <button
             className={`filter-tab ${filter === 'rejected' ? 'active' : ''}`}
             onClick={() => setFilter('rejected')}
           >
@@ -146,6 +177,9 @@ const ViewApplications = () => {
                 <p><strong>Email:</strong> {application.student?.personalInfo?.email}</p>
                 <p><strong>Phone:</strong> {application.student?.personalInfo?.phone || 'N/A'}</p>
                 <p><strong>Applied:</strong> {application.appliedAt?.toDate ? new Date(application.appliedAt.toDate()).toLocaleDateString() : 'N/A'}</p>
+                {application.decidedAt && (
+                  <p><strong>Decided:</strong> {new Date(application.decidedAt.toDate()).toLocaleDateString()}</p>
+                )}
               </div>
 
               <div className="company-actions">
@@ -154,22 +188,32 @@ const ViewApplications = () => {
                   className="btn-icon btn-info"
                   title="View Details"
                 >
-                  <FaEye /> View Details
+                  <FaEye /> View
                 </button>
 
                 {application.status === 'pending' && (
                   <>
                     <button
-                      onClick={() => handleStatusChange(application.id, 'admitted')}
+                      onClick={() => handleStatusChange(application.id, 'admitted', application)}
                       className="btn-icon btn-success"
                       title="Admit"
+                      disabled={processingAction}
                     >
                       <FaCheck /> Admit
                     </button>
                     <button
-                      onClick={() => handleStatusChange(application.id, 'rejected')}
+                      onClick={() => handleStatusChange(application.id, 'waitlisted', application)}
+                      className="btn-icon btn-warning"
+                      title="Waitlist"
+                      disabled={processingAction}
+                    >
+                      <FaClock /> Waitlist
+                    </button>
+                    <button
+                      onClick={() => handleStatusChange(application.id, 'rejected', application)}
                       className="btn-icon btn-delete"
                       title="Reject"
+                      disabled={processingAction}
                     >
                       <FaTimes /> Reject
                     </button>
@@ -200,13 +244,16 @@ const ViewApplications = () => {
                 <p><strong>Phone:</strong> {selectedApplication.student?.personalInfo?.phone || 'N/A'}</p>
                 <p><strong>Date of Birth:</strong> {selectedApplication.student?.personalInfo?.dateOfBirth || 'N/A'}</p>
                 <p><strong>Gender:</strong> {selectedApplication.student?.personalInfo?.gender || 'N/A'}</p>
+                {selectedApplication.student?.personalInfo?.address && (
+                  <p><strong>Address:</strong> {selectedApplication.student.personalInfo.address}</p>
+                )}
               </div>
 
               <div className="detail-section">
                 <h3>Academic Information</h3>
                 <p><strong>Previous School:</strong> {selectedApplication.student?.academicInfo?.previousSchool || 'N/A'}</p>
                 <p><strong>Graduation Year:</strong> {selectedApplication.student?.academicInfo?.graduationYear || 'N/A'}</p>
-                {selectedApplication.student?.academicInfo?.grades && (
+                {selectedApplication.student?.academicInfo?.grades && Object.keys(selectedApplication.student.academicInfo.grades).length > 0 && (
                   <>
                     <p><strong>Grades:</strong></p>
                     <div style={{ paddingLeft: '1rem' }}>
@@ -230,6 +277,7 @@ const ViewApplications = () => {
 
               <div className="detail-section">
                 <h3>Application Details</h3>
+                <p><strong>Application Number:</strong> #{selectedApplication.applicationNumber || 'N/A'}</p>
                 <p><strong>Applied On:</strong> {selectedApplication.appliedAt?.toDate ? new Date(selectedApplication.appliedAt.toDate()).toLocaleDateString() : 'N/A'}</p>
                 <p><strong>Status:</strong> <span className={`status-badge ${selectedApplication.status}`}>{selectedApplication.status}</span></p>
                 {selectedApplication.decidedAt && (
@@ -240,20 +288,56 @@ const ViewApplications = () => {
               <div className="detail-section">
                 <h3>Documents</h3>
                 {selectedApplication.student?.documents ? (
-                  <div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {selectedApplication.student.documents.idCard && (
-                      <a href={selectedApplication.student.documents.idCard} target="_blank" rel="noopener noreferrer" className="doc-link">
-                        📄 ID Card
+                      <a 
+                        href={selectedApplication.student.documents.idCard} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ 
+                          padding: '0.5rem 1rem',
+                          background: '#dbeafe',
+                          color: '#1e40af',
+                          textDecoration: 'none',
+                          borderRadius: '6px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        📄 View ID Card
                       </a>
                     )}
                     {selectedApplication.student.documents.transcript && (
-                      <a href={selectedApplication.student.documents.transcript} target="_blank" rel="noopener noreferrer" className="doc-link">
-                        📄 Transcript
+                      <a 
+                        href={selectedApplication.student.documents.transcript} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ 
+                          padding: '0.5rem 1rem',
+                          background: '#dbeafe',
+                          color: '#1e40af',
+                          textDecoration: 'none',
+                          borderRadius: '6px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        📄 View Transcript
                       </a>
                     )}
                     {selectedApplication.student.documents.certificate && (
-                      <a href={selectedApplication.student.documents.certificate} target="_blank" rel="noopener noreferrer" className="doc-link">
-                        📄 Certificate
+                      <a 
+                        href={selectedApplication.student.documents.certificate} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        style={{ 
+                          padding: '0.5rem 1rem',
+                          background: '#dbeafe',
+                          color: '#1e40af',
+                          textDecoration: 'none',
+                          borderRadius: '6px',
+                          fontWeight: '600'
+                        }}
+                      >
+                        📄 View Certificate
                       </a>
                     )}
                   </div>
@@ -267,17 +351,27 @@ const ViewApplications = () => {
               {selectedApplication.status === 'pending' && (
                 <>
                   <button
-                    onClick={() => handleStatusChange(selectedApplication.id, 'admitted')}
+                    onClick={() => handleStatusChange(selectedApplication.id, 'admitted', selectedApplication)}
                     className="btn-primary"
+                    disabled={processingAction}
                   >
-                    <FaCheck /> Admit Student
+                    <FaCheck /> {processingAction ? 'Processing...' : 'Admit Student'}
                   </button>
                   <button
-                    onClick={() => handleStatusChange(selectedApplication.id, 'rejected')}
+                    onClick={() => handleStatusChange(selectedApplication.id, 'waitlisted', selectedApplication)}
+                    className="btn-secondary"
+                    style={{ background: '#f59e0b', color: 'white', border: 'none' }}
+                    disabled={processingAction}
+                  >
+                    <FaClock /> {processingAction ? 'Processing...' : 'Waitlist'}
+                  </button>
+                  <button
+                    onClick={() => handleStatusChange(selectedApplication.id, 'rejected', selectedApplication)}
                     className="btn-secondary"
                     style={{ background: '#ef4444', color: 'white', border: 'none' }}
+                    disabled={processingAction}
                   >
-                    <FaTimes /> Reject Application
+                    <FaTimes /> {processingAction ? 'Processing...' : 'Reject'}
                   </button>
                 </>
               )}
