@@ -1,4 +1,4 @@
-// backend/src/middleware/auth.js
+// backend/src/middleware/auth.js - UPDATE THIS FILE
 const { admin, db } = require('../config/firebase');
 
 // Verify Firebase ID Token
@@ -13,6 +13,9 @@ const verifyToken = async (req, res, next) => {
     // Verify the Firebase ID token
     const decodedToken = await admin.auth().verifyIdToken(token);
     
+    // Get user from Firebase Auth (source of truth)
+    const userRecord = await admin.auth().getUser(decodedToken.uid);
+    
     // Get user data from Firestore
     const userDoc = await db.collection('users').doc(decodedToken.uid).get();
     
@@ -22,9 +25,23 @@ const verifyToken = async (req, res, next) => {
 
     const userData = userDoc.data();
 
-    // Check email verification
-    if (!userData.emailVerified) {
-      return res.status(403).json({ error: 'Email not verified' });
+    // Auto-sync email verification if different
+    if (userRecord.emailVerified && !userData.emailVerified) {
+      console.log(`Auto-syncing email verification for user ${decodedToken.uid}`);
+      await db.collection('users').doc(decodedToken.uid).update({
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
+        updatedAt: new Date()
+      });
+      userData.emailVerified = true;
+    }
+
+    // Check email verification (use Firebase Auth as source of truth)
+    if (!userRecord.emailVerified) {
+      return res.status(403).json({ 
+        error: 'Email not verified',
+        needsVerification: true 
+      });
     }
 
     // Attach user info to request
@@ -32,6 +49,7 @@ const verifyToken = async (req, res, next) => {
       uid: decodedToken.uid,
       email: decodedToken.email,
       role: userData.role,
+      emailVerified: userRecord.emailVerified,
       ...userData
     };
 

@@ -1,5 +1,6 @@
 // frontend/src/App.js
 import React from 'react';
+// eslint-disable-next-line
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastContainer } from 'react-toastify';
@@ -12,6 +13,7 @@ import ProtectedRoute from './components/common/ProtectedRoute';
 // Auth Components
 import Login from './components/auth/Login';
 import Register from './components/auth/Register';
+import EmailVerification from './components/auth/EmailVerification';
 
 // Admin Components
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -57,6 +59,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/verify-email" element={<EmailVerification />} />
 
               {/* Admin Routes */}
               <Route

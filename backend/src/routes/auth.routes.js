@@ -1,3 +1,4 @@
+// backend/src/routes/auth.routes.js
 const express = require('express');
 const router = express.Router();
 const { auth, db } = require('../config/firebase');
@@ -15,17 +16,20 @@ router.post('/register', async (req, res) => {
     }
 
     // Create Firebase user
-
-
-const { admin } = require('../config/firebase');
-const userRecord = await admin.auth().createUser({
+    const { admin } = require('../config/firebase');
+    const userRecord = await admin.auth().createUser({
       email,
       password,
       emailVerified: false
     });
 
-    // Generate email verification link
-    const verificationLink = await auth.generateEmailVerificationLink(email);
+    // Generate email verification link with custom action URL
+    const actionCodeSettings = {
+      url: `${process.env.FRONTEND_URL}/verify-email?uid=${userRecord.uid}`,
+      handleCodeInApp: true
+    };
+    
+    const verificationLink = await auth.generateEmailVerificationLink(email, actionCodeSettings);
 
     // Save user data to Firestore
     await db.collection('users').doc(userRecord.uid).set({
@@ -101,10 +105,19 @@ router.post('/login', async (req, res) => {
 
     const userData = userDoc.data();
 
-    // Check email verification
-    if (!userData.emailVerified && !userRecord.emailVerified) {
+    // Check email verification in Firebase Auth (this is the source of truth)
+    if (!userRecord.emailVerified) {
       return res.status(403).json({ 
-        error: 'Please verify your email before logging in' 
+        error: 'Please verify your email before logging in',
+        needsVerification: true
+      });
+    }
+
+    // Sync emailVerified status if it's different in Firestore
+    if (!userData.emailVerified && userRecord.emailVerified) {
+      await db.collection('users').doc(userRecord.uid).update({
+        emailVerified: true,
+        updatedAt: new Date()
       });
     }
 
@@ -133,21 +146,84 @@ router.post('/login', async (req, res) => {
   }
 });
 
-// Verify email
-router.post('/verify-email', async (req, res) => {
+// NEW: Check and sync verification status
+router.post('/check-verification', async (req, res) => {
   try {
     const { uid } = req.body;
 
-    // Update Firebase Auth
-    await auth.updateUser(uid, { emailVerified: true });
+    if (!uid) {
+      return res.status(400).json({ error: 'UID is required' });
+    }
 
-    // Update Firestore
-    await db.collection('users').doc(uid).update({
+    // Get user from Firebase Auth
+    const userRecord = await auth.getUser(uid);
+    
+    // Get user from Firestore
+    const userDoc = await db.collection('users').doc(uid).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const userData = userDoc.data();
+
+    // If Firebase Auth shows verified but Firestore doesn't, update Firestore
+    if (userRecord.emailVerified && !userData.emailVerified) {
+      await db.collection('users').doc(uid).update({
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
+        updatedAt: new Date()
+      });
+
+      return res.json({
+        verified: true,
+        message: 'Email verification status updated',
+        synced: true
+      });
+    }
+
+    res.json({
+      verified: userRecord.emailVerified,
+      message: userRecord.emailVerified ? 'Email is verified' : 'Email not verified yet',
+      synced: userRecord.emailVerified === userData.emailVerified
+    });
+  } catch (error) {
+    console.error('Check verification error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Verify email - This endpoint is called after user clicks verification link
+router.post('/verify-email', async (req, res) => {
+  try {
+    const { oobCode } = req.body;
+
+    if (!oobCode) {
+      return res.status(400).json({ error: 'Verification code is required' });
+    }
+
+    // Apply the verification code
+    await auth.applyActionCode(oobCode);
+
+    // Get email from the action code
+    const info = await auth.checkActionCode(oobCode);
+    const email = info.data.email;
+
+    // Get user by email
+    const userRecord = await auth.getUserByEmail(email);
+
+    // Update Firestore with verification status
+    await db.collection('users').doc(userRecord.uid).update({
       emailVerified: true,
+      emailVerifiedAt: new Date(),
       updatedAt: new Date()
     });
 
-    res.json({ message: 'Email verified successfully' });
+    res.json({ 
+      message: 'Email verified successfully',
+      emailVerified: true,
+      uid: userRecord.uid
+    });
   } catch (error) {
     console.error('Verification error:', error);
     res.status(400).json({ error: error.message });
@@ -159,13 +235,89 @@ router.post('/resend-verification', async (req, res) => {
   try {
     const { email } = req.body;
 
-    const verificationLink = await auth.generateEmailVerificationLink(email);
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Get user from Firebase Auth
+    const userRecord = await auth.getUserByEmail(email);
+
+    // Check if already verified
+    if (userRecord.emailVerified) {
+      return res.status(400).json({ error: 'Email is already verified' });
+    }
+
+    const actionCodeSettings = {
+      url: `${process.env.FRONTEND_URL}/verify-email`,
+      handleCodeInApp: true
+    };
+    
+    const verificationLink = await auth.generateEmailVerificationLink(email, actionCodeSettings);
     await sendVerificationEmail(email, verificationLink);
 
     res.json({ message: 'Verification email sent' });
   } catch (error) {
     console.error('Resend verification error:', error);
     res.status(400).json({ error: error.message });
+  }
+});
+
+// ADMIN ENDPOINT: Manually sync all users from Firebase Auth to Firestore
+router.post('/admin/sync-all-users', async (req, res) => {
+  try {
+    const { adminKey } = req.body;
+
+    // Simple admin key check (you should use proper auth in production)
+    if (adminKey !== process.env.ADMIN_SYNC_KEY) {
+      return res.status(403).json({ error: 'Unauthorized' });
+    }
+
+    let syncCount = 0;
+    let errorCount = 0;
+    const errors = [];
+
+    // List all users from Firebase Auth
+    const listUsersResult = await auth.listUsers();
+    
+    for (const userRecord of listUsersResult.users) {
+      try {
+        // Get Firestore document
+        const userDoc = await db.collection('users').doc(userRecord.uid).get();
+        
+        if (userDoc.exists) {
+          const userData = userDoc.data();
+          
+          // Sync if email verification status is different
+          if (userRecord.emailVerified !== userData.emailVerified) {
+            await db.collection('users').doc(userRecord.uid).update({
+              emailVerified: userRecord.emailVerified,
+              emailVerifiedAt: userRecord.emailVerified ? new Date() : null,
+              updatedAt: new Date()
+            });
+            syncCount++;
+            console.log(`Synced user: ${userRecord.email} - emailVerified: ${userRecord.emailVerified}`);
+          }
+        }
+      } catch (error) {
+        errorCount++;
+        errors.push({
+          uid: userRecord.uid,
+          email: userRecord.email,
+          error: error.message
+        });
+      }
+    }
+
+    res.json({
+      message: 'Sync completed',
+      totalUsers: listUsersResult.users.length,
+      syncedUsers: syncCount,
+      errors: errorCount,
+      errorDetails: errors
+    });
+  } catch (error) {
+    console.error('Sync error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 

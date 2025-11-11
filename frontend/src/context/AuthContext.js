@@ -3,7 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   signInWithEmailAndPassword, 
   signOut,
-  onAuthStateChanged
+  onAuthStateChanged,
+  reload
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
@@ -25,40 +26,43 @@ export const AuthProvider = ({ children }) => {
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Register is now handled directly in the Register component
-  // This function is kept for backwards compatibility but not used
-  const register = async (email, password, role, additionalData = {}) => {
+  // Function to check and sync email verification status
+  const checkEmailVerification = async (user) => {
     try {
-      const registrationData = {
-        email,
-        password,
-        role,
-        ...additionalData
-      };
-
-      await api.post('/auth/register', registrationData);
-      toast.success('Registration successful! Please check your email to verify your account.');
-      return true;
+      // Reload user to get latest emailVerified status from Firebase Auth
+      await reload(user);
+      
+      // If email is verified in Auth, sync with backend
+      if (user.emailVerified) {
+        await api.post('/auth/check-verification', { uid: user.uid });
+      }
+      
+      return user.emailVerified;
     } catch (error) {
-      const errorMessage = error.response?.data?.error || error.message;
-      toast.error(errorMessage);
-      throw error;
+      console.error('Error checking email verification:', error);
+      return user.emailVerified;
     }
   };
 
   // Login user
   const login = async (email, password) => {
     try {
-      // First, sign in with Firebase
+      // Sign in with Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      // Reload user to get fresh emailVerified status
+      await reload(user);
+
       // Check if email is verified
       if (!user.emailVerified) {
-        toast.warning('Please verify your email before logging in.');
+        toast.warning('Please verify your email before logging in. Check your inbox for the verification link.');
         await signOut(auth);
         return null;
       }
+
+      // Sync verification status with backend
+      await api.post('/auth/check-verification', { uid: user.uid });
 
       // Get user role from Firestore
       const userDoc = await getDoc(doc(db, 'users', user.uid));
@@ -120,20 +124,56 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Resend verification email
+  const resendVerification = async (email) => {
+    try {
+      await api.post('/auth/resend-verification', { email });
+      toast.success('Verification email sent! Please check your inbox.');
+      return true;
+    } catch (error) {
+      const errorMessage = error.response?.data?.error || 'Failed to send verification email';
+      toast.error(errorMessage);
+      throw error;
+    }
+  };
+
+  // Check verification status
+  const checkVerificationStatus = async (uid) => {
+    try {
+      const response = await api.post('/auth/check-verification', { uid });
+      return response.data;
+    } catch (error) {
+      console.error('Error checking verification status:', error);
+      return null;
+    }
+  };
+
   // Listen to auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user && user.emailVerified) {
-        setCurrentUser(user);
+      if (user) {
+        // Reload user to get fresh emailVerified status
+        await reload(user);
         
-        // Get user role
-        try {
-          const userDoc = await getDoc(doc(db, 'users', user.uid));
-          if (userDoc.exists()) {
-            setUserRole(userDoc.data().role);
+        if (user.emailVerified) {
+          // Sync verification status with backend
+          await checkEmailVerification(user);
+          
+          setCurrentUser(user);
+          
+          // Get user role
+          try {
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+              setUserRole(userDoc.data().role);
+            }
+          } catch (error) {
+            console.error('Error fetching user role:', error);
           }
-        } catch (error) {
-          console.error('Error fetching user role:', error);
+        } else {
+          // User not verified, don't set as current user
+          setCurrentUser(null);
+          setUserRole(null);
         }
       } else {
         setCurrentUser(null);
@@ -145,13 +185,30 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
+  // Auto-check verification every 30 seconds if user exists but not verified
+  useEffect(() => {
+    if (auth.currentUser && !auth.currentUser.emailVerified) {
+      const intervalId = setInterval(async () => {
+        await reload(auth.currentUser);
+        if (auth.currentUser.emailVerified) {
+          await checkEmailVerification(auth.currentUser);
+          window.location.reload(); // Refresh to update UI
+        }
+      }, 30000); // Check every 30 seconds
+
+      return () => clearInterval(intervalId);
+    }
+  }, []);
+
   const value = {
     currentUser,
     userRole,
-    register,
     login,
     logout,
-    loading
+    loading,
+    resendVerification,
+    checkVerificationStatus,
+    checkEmailVerification
   };
 
   return (
