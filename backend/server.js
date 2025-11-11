@@ -28,7 +28,7 @@ app.use('/api/institute', instituteRoutes);
 app.use('/api/student', studentRoutes);
 app.use('/api/company', companyRoutes);
 app.use('/api/upload', uploadRoutes);
-
+app.use('/api/upload', uploadRoutes);
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'Server is running', timestamp: new Date() });

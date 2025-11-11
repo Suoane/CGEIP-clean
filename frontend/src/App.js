@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import './App.css';
 
 // Common Components
 import Navbar from './components/common/Navbar';
@@ -29,6 +30,7 @@ import ApplyCourse from './components/student/ApplyCourse';
 import ViewAdmissions from './components/student/ViewAdmissions';
 import StudentProfile from './components/student/StudentProfile';
 import UploadDocuments from './components/student/UploadDocuments';
+import AutoMatchDashboard from './components/student/AutoMatchDashboard';
 
 // Institute Components
 import InstituteDashboard from './components/institute/InstituteDashboard';
@@ -43,8 +45,6 @@ import CompanyDashboard from './components/company/CompanyDashboard';
 import PostJob from './components/company/PostJob';
 import QualifiedApplicants from './components/company/QualifiedApplicants';
 import CompanyProfile from './components/company/CompanyProfile';
-
-import './App.css';
 
 function App() {
   return (
@@ -74,6 +74,7 @@ function App() {
               <Route path="/student/admissions" element={<ProtectedRoute allowedRoles={['student']}><ViewAdmissions /></ProtectedRoute>} />
               <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student']}><StudentProfile /></ProtectedRoute>} />
               <Route path="/student/upload-documents" element={<ProtectedRoute allowedRoles={['student']}><UploadDocuments /></ProtectedRoute>} />
+              <Route path="/student/matches" element={<ProtectedRoute allowedRoles={['student']}><AutoMatchDashboard /></ProtectedRoute>} />
 
               {/* Institute Routes */}
               <Route path="/institute/dashboard" element={<ProtectedRoute allowedRoles={['institute']}><InstituteDashboard /></ProtectedRoute>} />

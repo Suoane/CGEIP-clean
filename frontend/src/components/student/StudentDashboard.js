@@ -6,7 +6,9 @@ import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firesto
 import { db } from '../../services/firebase';
 import { FaGraduationCap, FaFileAlt, FaBriefcase, FaUser, FaCheckCircle, FaExclamationTriangle, FaUpload } from 'react-icons/fa';
 import './Student.css';
-
+<Link to="/student/matches" className="action-btn">
+  🎯 View My Matches
+</Link>
 const StudentDashboard = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
