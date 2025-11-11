@@ -15,6 +15,8 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Invalid role' });
     }
 
+    console.log(`📝 Registering new ${role}: ${email}`);
+
     // Create Firebase user
     const { admin } = require('../config/firebase');
     const userRecord = await admin.auth().createUser({
@@ -23,13 +25,18 @@ router.post('/register', async (req, res) => {
       emailVerified: false
     });
 
+    console.log(`✅ User created in Firebase Auth: ${userRecord.uid}`);
+    console.log(`📧 Initial emailVerified status: ${userRecord.emailVerified}`);
+
     // Generate email verification link with custom action URL
     const actionCodeSettings = {
       url: `${process.env.FRONTEND_URL}/verify-email?uid=${userRecord.uid}`,
       handleCodeInApp: true
     };
     
+    console.log('🔗 Generating verification link...');
     const verificationLink = await auth.generateEmailVerificationLink(email, actionCodeSettings);
+    console.log('✅ Verification link generated');
 
     // Save user data to Firestore
     await db.collection('users').doc(userRecord.uid).set({
@@ -39,6 +46,8 @@ router.post('/register', async (req, res) => {
       createdAt: new Date(),
       updatedAt: new Date()
     });
+
+    console.log('✅ User saved to Firestore');
 
     // Save role-specific data
     if (role === 'student') {
@@ -53,6 +62,7 @@ router.post('/register', async (req, res) => {
         admittedInstitution: null,
         createdAt: new Date()
       });
+      console.log('✅ Student profile created');
     } else if (role === 'company') {
       await db.collection('companies').doc(userRecord.uid).set({
         companyName: additionalData.companyName,
@@ -63,6 +73,7 @@ router.post('/register', async (req, res) => {
         status: 'pending',
         createdAt: new Date()
       });
+      console.log('✅ Company profile created');
     } else if (role === 'institute') {
       await db.collection('institutions').doc(userRecord.uid).set({
         name: additionalData.name,
@@ -73,17 +84,29 @@ router.post('/register', async (req, res) => {
         status: 'active',
         createdAt: new Date()
       });
+      console.log('✅ Institution profile created');
     }
 
     // Send verification email
+    console.log('📧 Sending verification email...');
     await sendVerificationEmail(email, verificationLink);
+    console.log('✅ Verification email sent successfully');
 
     res.status(201).json({
       message: 'User registered successfully. Please check your email to verify your account.',
-      uid: userRecord.uid
+      uid: userRecord.uid,
+      email: email,
+      role: role
     });
+
+    console.log(`✅ Registration completed for ${email}`);
+
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error('❌ Registration error:', error);
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message
+    });
     res.status(400).json({ error: error.message });
   }
 });
@@ -205,41 +228,94 @@ router.post('/verify-email', async (req, res) => {
     console.log('🔄 Processing email verification...');
 
     // Step 1: Check and validate the action code
-    const info = await auth.checkActionCode(oobCode);
-    console.log('✅ Action code validated');
+    let info;
+    try {
+      info = await auth.checkActionCode(oobCode);
+      console.log('✅ Action code validated');
+    } catch (checkError) {
+      console.error('❌ Error checking action code:', checkError);
+      throw checkError;
+    }
     
     const email = info.data.email;
     console.log(`📧 Verifying email for: ${email}`);
 
     // Step 2: Apply the action code (this actually verifies the email in Firebase Auth)
-    await auth.applyActionCode(oobCode);
-    console.log('✅ Action code applied - email verified in Firebase Auth');
+    try {
+      await auth.applyActionCode(oobCode);
+      console.log('✅ Action code applied - email verified in Firebase Auth');
+    } catch (applyError) {
+      console.error('❌ Error applying action code:', applyError);
+      throw applyError;
+    }
 
     // Step 3: Get the user and confirm verification
     const { admin } = require('../config/firebase');
-    const userRecord = await admin.auth().getUserByEmail(email);
+    let userRecord;
+    try {
+      userRecord = await admin.auth().getUserByEmail(email);
+      console.log(`📝 User found: ${userRecord.uid}`);
+    } catch (getUserError) {
+      console.error('❌ Error getting user:', getUserError);
+      throw getUserError;
+    }
     
-    // Reload to get fresh data
+    // CRITICAL: Force update the emailVerified field in Firebase Auth
+    try {
+      await admin.auth().updateUser(userRecord.uid, {
+        emailVerified: true
+      });
+      console.log('✅ Explicitly set emailVerified=true in Firebase Auth');
+    } catch (updateError) {
+      console.error('⚠️ Warning: Could not explicitly update emailVerified:', updateError);
+      // Continue anyway as applyActionCode should have already verified it
+    }
+    
+    // Verify the update by fetching fresh user data
     const updatedUser = await admin.auth().getUser(userRecord.uid);
-    console.log(`✅ User emailVerified status: ${updatedUser.emailVerified}`);
+    console.log(`✅ User emailVerified status after update: ${updatedUser.emailVerified}`);
+
+    if (!updatedUser.emailVerified) {
+      console.error('⚠️ WARNING: emailVerified still false after verification!');
+      // Force it one more time
+      await admin.auth().updateUser(userRecord.uid, {
+        emailVerified: true
+      });
+      console.log('✅ Force-updated emailVerified again');
+    }
 
     // Step 4: Update Firestore
-    await db.collection('users').doc(userRecord.uid).update({
-      emailVerified: true,
-      emailVerifiedAt: new Date(),
-      updatedAt: new Date()
-    });
-    console.log('✅ Firestore updated');
+    try {
+      await db.collection('users').doc(userRecord.uid).update({
+        emailVerified: true,
+        emailVerifiedAt: new Date(),
+        updatedAt: new Date()
+      });
+      console.log('✅ Firestore updated');
+    } catch (firestoreError) {
+      console.error('⚠️ Warning: Could not update Firestore:', firestoreError);
+      // Continue anyway as Firebase Auth is the source of truth
+    }
+
+    // Final verification check
+    const finalUser = await admin.auth().getUser(userRecord.uid);
+    console.log(`🎯 FINAL emailVerified status: ${finalUser.emailVerified}`);
 
     res.json({ 
       message: 'Email verified successfully',
-      emailVerified: true,
+      emailVerified: finalUser.emailVerified,
       uid: userRecord.uid,
-      email: email
+      email: email,
+      timestamp: new Date().toISOString()
     });
 
   } catch (error) {
     console.error('❌ Verification error:', error);
+    console.error('Error details:', {
+      code: error.code,
+      message: error.message,
+      stack: error.stack
+    });
     
     let errorMessage = 'Failed to verify email';
     let statusCode = 400;
@@ -259,9 +335,15 @@ router.post('/verify-email', async (req, res) => {
       statusCode = 500;
     }
     
-    res.status(statusCode).json({ error: errorMessage });
+    res.status(statusCode).json({ 
+      error: errorMessage,
+      code: error.code,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
+
+
 
 // Resend verification email
 router.post('/resend-verification', async (req, res) => {

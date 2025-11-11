@@ -17,33 +17,62 @@ const EmailVerification = () => {
   }, []);
 
   const verifyEmail = async () => {
-    try {
-      const oobCode = searchParams.get('oobCode');
-      const mode = searchParams.get('mode');
+  try {
+    const oobCode = searchParams.get('oobCode');
+    const mode = searchParams.get('mode');
+    
+    if (!oobCode) {
+      setError('Invalid verification link. Please request a new verification email.');
+      setVerifying(false);
+      return;
+    }
+
+    if (mode !== 'verifyEmail') {
+      setError('Invalid verification mode.');
+      setVerifying(false);
+      return;
+    }
+
+    console.log('🔄 Starting email verification...');
+
+    // Let backend handle EVERYTHING - it has admin privileges
+    const response = await api.post('/auth/verify-email', { oobCode });
+    console.log('✅ Verification response:', response.data);
+
+    if (response.data.emailVerified) {
+      setVerified(true);
       
-      if (!oobCode) {
-        setError('Invalid verification link. Please request a new verification email.');
-        setVerifying(false);
-        return;
-      }
-
-      if (mode !== 'verifyEmail') {
-        setError('Invalid verification mode.');
-        setVerifying(false);
-        return;
-      }
-
-      console.log('🔄 Starting email verification...');
-
-      // Let backend handle EVERYTHING - it has admin privileges
-      const response = await api.post('/auth/verify-email', { oobCode });
-      console.log('✅ Verification response:', response.data);
-
-      if (response.data.emailVerified) {
+      // Wait a moment for Firebase to propagate the change
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      toast.success('🎉 Email verified successfully! Redirecting to login...');
+      
+      // Auto-redirect to login after 2 seconds
+      setTimeout(() => {
+        navigate('/login', { 
+          state: { 
+            message: 'Email verified! You can now log in.',
+            verified: true 
+          } 
+        });
+      }, 2000);
+    } else {
+      // Retry verification status check
+      console.log('⚠️ emailVerified is false, retrying in 2 seconds...');
+      
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Check verification status again
+      const statusCheck = await api.post('/auth/check-verification', { 
+        uid: response.data.uid 
+      });
+      
+      console.log('📋 Status check result:', statusCheck.data);
+      
+      if (statusCheck.data.verified) {
         setVerified(true);
         toast.success('🎉 Email verified successfully! Redirecting to login...');
         
-        // Auto-redirect to login after 2 seconds
         setTimeout(() => {
           navigate('/login', { 
             state: { 
@@ -53,29 +82,30 @@ const EmailVerification = () => {
           });
         }, 2000);
       } else {
-        throw new Error('Verification completed but status not updated');
+        throw new Error('Verification completed but status not confirmed. Please try logging in.');
       }
-
-    } catch (error) {
-      console.error('❌ Verification error:', error);
-      
-      let errorMessage = 'Failed to verify email. ';
-      
-      // Handle backend error responses
-      if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error.message) {
-        errorMessage += error.message;
-      } else {
-        errorMessage += 'Unknown error occurred.';
-      }
-      
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setVerifying(false);
     }
-  };
+
+  } catch (error) {
+    console.error('❌ Verification error:', error);
+    
+    let errorMessage = 'Failed to verify email. ';
+    
+    // Handle backend error responses
+    if (error.response?.data?.error) {
+      errorMessage = error.response.data.error;
+    } else if (error.message) {
+      errorMessage += error.message;
+    } else {
+      errorMessage += 'Unknown error occurred.';
+    }
+    
+    setError(errorMessage);
+    toast.error(errorMessage);
+  } finally {
+    setVerifying(false);
+  }
+};
 
   const handleResendVerification = async () => {
     const email = prompt('Please enter your email address:');
