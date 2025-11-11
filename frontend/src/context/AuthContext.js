@@ -185,20 +185,7 @@ export const AuthProvider = ({ children }) => {
     return unsubscribe;
   }, []);
 
-  // Auto-check verification every 30 seconds if user exists but not verified
-  useEffect(() => {
-    if (auth.currentUser && !auth.currentUser.emailVerified) {
-      const intervalId = setInterval(async () => {
-        await reload(auth.currentUser);
-        if (auth.currentUser.emailVerified) {
-          await checkEmailVerification(auth.currentUser);
-          window.location.reload(); // Refresh to update UI
-        }
-      }, 30000); // Check every 30 seconds
 
-      return () => clearInterval(intervalId);
-    }
-  }, []);
 
   const value = {
     currentUser,

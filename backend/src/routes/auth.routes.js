@@ -202,31 +202,64 @@ router.post('/verify-email', async (req, res) => {
       return res.status(400).json({ error: 'Verification code is required' });
     }
 
-    // Apply the verification code
-    await auth.applyActionCode(oobCode);
+    console.log('🔄 Processing email verification...');
 
-    // Get email from the action code
+    // Step 1: Check and validate the action code
     const info = await auth.checkActionCode(oobCode);
+    console.log('✅ Action code validated');
+    
     const email = info.data.email;
+    console.log(`📧 Verifying email for: ${email}`);
 
-    // Get user by email
-    const userRecord = await auth.getUserByEmail(email);
+    // Step 2: Apply the action code (this actually verifies the email in Firebase Auth)
+    await auth.applyActionCode(oobCode);
+    console.log('✅ Action code applied - email verified in Firebase Auth');
 
-    // Update Firestore with verification status
+    // Step 3: Get the user and confirm verification
+    const { admin } = require('../config/firebase');
+    const userRecord = await admin.auth().getUserByEmail(email);
+    
+    // Reload to get fresh data
+    const updatedUser = await admin.auth().getUser(userRecord.uid);
+    console.log(`✅ User emailVerified status: ${updatedUser.emailVerified}`);
+
+    // Step 4: Update Firestore
     await db.collection('users').doc(userRecord.uid).update({
       emailVerified: true,
       emailVerifiedAt: new Date(),
       updatedAt: new Date()
     });
+    console.log('✅ Firestore updated');
 
     res.json({ 
       message: 'Email verified successfully',
       emailVerified: true,
-      uid: userRecord.uid
+      uid: userRecord.uid,
+      email: email
     });
+
   } catch (error) {
-    console.error('Verification error:', error);
-    res.status(400).json({ error: error.message });
+    console.error('❌ Verification error:', error);
+    
+    let errorMessage = 'Failed to verify email';
+    let statusCode = 400;
+
+    if (error.code === 'auth/expired-action-code') {
+      errorMessage = 'Verification link has expired. Please request a new one.';
+    } else if (error.code === 'auth/invalid-action-code') {
+      errorMessage = 'Invalid or already used verification link.';
+    } else if (error.code === 'auth/user-disabled') {
+      errorMessage = 'This user account has been disabled.';
+      statusCode = 403;
+    } else if (error.code === 'auth/user-not-found') {
+      errorMessage = 'User account not found.';
+      statusCode = 404;
+    } else {
+      errorMessage = error.message || 'Unknown error occurred';
+      statusCode = 500;
+    }
+    
+    res.status(statusCode).json({ error: errorMessage });
   }
 });
 

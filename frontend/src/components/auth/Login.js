@@ -1,17 +1,28 @@
 // frontend/src/components/auth/Login.js
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { toast } from 'react-toastify';
 import './Auth.css';
 
 const Login = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [resendingVerification, setResendingVerification] = useState(false);
   const { login, resendVerification } = useAuth();
-  const navigate = useNavigate();
+
+  // Show success message if coming from email verification
+  useEffect(() => {
+    if (location.state?.verified && location.state?.message) {
+      toast.success(location.state.message);
+      // Clear the state to prevent showing message on refresh
+      window.history.replaceState({}, document.title);
+    }
+  }, [location]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -53,7 +64,7 @@ const Login = () => {
 
   const handleResendVerification = async () => {
     if (!email) {
-      alert('Please enter your email address first');
+      toast.warning('Please enter your email address first');
       return;
     }
 
