@@ -1,4 +1,4 @@
-// frontend/src/context/AuthContext.js
+// frontend/src/context/AuthContext.js - FIXED VERSION
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   signInWithEmailAndPassword, 
@@ -32,9 +32,21 @@ export const AuthProvider = ({ children }) => {
       // Reload user to get latest emailVerified status from Firebase Auth
       await reload(user);
       
+      console.log(`📧 Email verification status for ${user.email}: ${user.emailVerified}`);
+      
       // If email is verified in Auth, sync with backend
       if (user.emailVerified) {
-        await api.post('/auth/check-verification', { uid: user.uid });
+        try {
+          const syncResponse = await api.post('/auth/check-verification', { uid: user.uid });
+          console.log('✅ Verification sync response:', syncResponse.data);
+          
+          if (syncResponse.data.synced) {
+            console.log('✅ Firestore emailVerified successfully synced');
+          }
+        } catch (syncError) {
+          console.error('⚠️ Could not sync verification status:', syncError);
+          // Continue anyway since Firebase Auth is the source of truth
+        }
       }
       
       return user.emailVerified;
@@ -47,52 +59,73 @@ export const AuthProvider = ({ children }) => {
   // Login user
   const login = async (email, password) => {
     try {
+      console.log(`🔐 Attempting login for: ${email}`);
+      
       // Sign in with Firebase
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
+      console.log(`✅ Firebase authentication successful for: ${email}`);
+
       // Reload user to get fresh emailVerified status
       await reload(user);
+      console.log(`📧 Email verified status: ${user.emailVerified}`);
 
       // Check if email is verified
       if (!user.emailVerified) {
+        console.warn('⚠️ Email not verified');
         toast.warning('Please verify your email before logging in. Check your inbox for the verification link.');
         await signOut(auth);
         return null;
       }
 
-      // Sync verification status with backend
-      await api.post('/auth/check-verification', { uid: user.uid });
+      // Sync verification status with backend and Firestore
+      try {
+        await api.post('/auth/check-verification', { uid: user.uid });
+        console.log('✅ Verification status synced with backend');
+      } catch (syncError) {
+        console.error('⚠️ Could not sync verification status:', syncError);
+        // Continue anyway since Firebase Auth verification is confirmed
+      }
 
       // Get user role from Firestore
       const userDoc = await getDoc(doc(db, 'users', user.uid));
       if (!userDoc.exists()) {
+        console.error('❌ User document not found in Firestore');
         toast.error('User data not found. Please contact support.');
         await signOut(auth);
         return null;
       }
 
       const userData = userDoc.data();
+      console.log(`✅ User role: ${userData.role}`);
       
       // Check company approval status if user is a company
       if (userData.role === 'company') {
         const companyDoc = await getDoc(doc(db, 'companies', user.uid));
-        if (companyDoc.exists() && companyDoc.data().status === 'pending') {
-          toast.warning('Your company account is pending approval.');
-          await signOut(auth);
-          return null;
-        } else if (companyDoc.exists() && companyDoc.data().status === 'suspended') {
-          toast.error('Your company account has been suspended.');
-          await signOut(auth);
-          return null;
+        if (companyDoc.exists()) {
+          const companyStatus = companyDoc.data().status;
+          console.log(`🏢 Company status: ${companyStatus}`);
+          
+          if (companyStatus === 'pending') {
+            toast.warning('Your company account is pending approval.');
+            await signOut(auth);
+            return null;
+          } else if (companyStatus === 'suspended') {
+            toast.error('Your company account has been suspended.');
+            await signOut(auth);
+            return null;
+          }
         }
       }
 
       setUserRole(userData.role);
       toast.success('Login successful!');
+      console.log(`✅ Login completed successfully for ${email}`);
+      
       return { user, role: userData.role };
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('❌ Login error:', error);
       let errorMessage = 'Login failed. Please try again.';
       
       if (error.code === 'auth/user-not-found') {
@@ -103,6 +136,8 @@ export const AuthProvider = ({ children }) => {
         errorMessage = 'Invalid email address.';
       } else if (error.code === 'auth/too-many-requests') {
         errorMessage = 'Too many failed login attempts. Please try again later.';
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Invalid email or password.';
       }
       
       toast.error(errorMessage);
@@ -117,8 +152,9 @@ export const AuthProvider = ({ children }) => {
       setCurrentUser(null);
       setUserRole(null);
       toast.success('Logged out successfully!');
+      console.log('✅ Logout successful');
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error('❌ Logout error:', error);
       toast.error('Error logging out. Please try again.');
       throw error;
     }
@@ -127,10 +163,13 @@ export const AuthProvider = ({ children }) => {
   // Resend verification email
   const resendVerification = async (email) => {
     try {
+      console.log(`📧 Resending verification email to: ${email}`);
       await api.post('/auth/resend-verification', { email });
       toast.success('Verification email sent! Please check your inbox.');
+      console.log('✅ Verification email sent');
       return true;
     } catch (error) {
+      console.error('❌ Resend verification error:', error);
       const errorMessage = error.response?.data?.error || 'Failed to send verification email';
       toast.error(errorMessage);
       throw error;
@@ -150,10 +189,15 @@ export const AuthProvider = ({ children }) => {
 
   // Listen to auth state changes
   useEffect(() => {
+    console.log('🔄 Setting up auth state listener...');
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        console.log(`👤 Auth state changed - User detected: ${user.email}`);
+        
         // Reload user to get fresh emailVerified status
         await reload(user);
+        console.log(`📧 Current emailVerified status: ${user.emailVerified}`);
         
         if (user.emailVerified) {
           // Sync verification status with backend
@@ -165,27 +209,34 @@ export const AuthProvider = ({ children }) => {
           try {
             const userDoc = await getDoc(doc(db, 'users', user.uid));
             if (userDoc.exists()) {
-              setUserRole(userDoc.data().role);
+              const role = userDoc.data().role;
+              setUserRole(role);
+              console.log(`✅ User role set: ${role}`);
+            } else {
+              console.warn('⚠️ User document not found in Firestore');
             }
           } catch (error) {
-            console.error('Error fetching user role:', error);
+            console.error('❌ Error fetching user role:', error);
           }
         } else {
           // User not verified, don't set as current user
+          console.log('⚠️ Email not verified - user not authenticated');
           setCurrentUser(null);
           setUserRole(null);
         }
       } else {
+        console.log('👤 Auth state changed - No user detected');
         setCurrentUser(null);
         setUserRole(null);
       }
       setLoading(false);
     });
 
-    return unsubscribe;
+    return () => {
+      console.log('🔄 Cleaning up auth state listener');
+      unsubscribe();
+    };
   }, []);
-
-
 
   const value = {
     currentUser,

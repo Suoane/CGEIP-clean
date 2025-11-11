@@ -1,9 +1,23 @@
-// frontend/src/components/auth/EmailVerification.js
+// frontend/src/components/auth/EmailVerification.js - FIXED VERSION
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import api from '../../services/api';
 import './Auth.css';
+
+// Add CSS for spinner animation
+if (typeof document !== 'undefined') {
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  `;
+  if (!document.head.querySelector('style[data-spinner]')) {
+    style.setAttribute('data-spinner', 'true');
+    document.head.appendChild(style);
+  }
+}
 
 const EmailVerification = () => {
   const [searchParams] = useSearchParams();
@@ -17,95 +31,104 @@ const EmailVerification = () => {
   }, []);
 
   const verifyEmail = async () => {
-  try {
-    const oobCode = searchParams.get('oobCode');
-    const mode = searchParams.get('mode');
-    
-    if (!oobCode) {
-      setError('Invalid verification link. Please request a new verification email.');
-      setVerifying(false);
-      return;
-    }
+    try {
+      const oobCode = searchParams.get('oobCode');
+      const mode = searchParams.get('mode');
+      
+      if (!oobCode) {
+        setError('Invalid verification link. Please request a new verification email.');
+        setVerifying(false);
+        return;
+      }
 
-    if (mode !== 'verifyEmail') {
-      setError('Invalid verification mode.');
-      setVerifying(false);
-      return;
-    }
+      if (mode !== 'verifyEmail') {
+        setError('Invalid verification mode.');
+        setVerifying(false);
+        return;
+      }
 
-    console.log('🔄 Starting email verification...');
+      console.log('🔄 Starting email verification...');
 
-    // Let backend handle EVERYTHING - it has admin privileges
-    const response = await api.post('/auth/verify-email', { oobCode });
-    console.log('✅ Verification response:', response.data);
+      // Call backend verification endpoint
+      const response = await api.post('/auth/verify-email', { oobCode });
+      console.log('✅ Verification response:', response.data);
 
-    if (response.data.emailVerified) {
-      setVerified(true);
-      
-      // Wait a moment for Firebase to propagate the change
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      toast.success('🎉 Email verified successfully! Redirecting to login...');
-      
-      // Auto-redirect to login after 2 seconds
-      setTimeout(() => {
-        navigate('/login', { 
-          state: { 
-            message: 'Email verified! You can now log in.',
-            verified: true 
-          } 
-        });
-      }, 2000);
-    } else {
-      // Retry verification status check
-      console.log('⚠️ emailVerified is false, retrying in 2 seconds...');
-      
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Check verification status again
-      const statusCheck = await api.post('/auth/check-verification', { 
-        uid: response.data.uid 
-      });
-      
-      console.log('📋 Status check result:', statusCheck.data);
-      
-      if (statusCheck.data.verified) {
+      // Check if verification was successful
+      if (response.data.success && response.data.emailVerified) {
         setVerified(true);
-        toast.success('🎉 Email verified successfully! Redirecting to login...');
+        setError(null);
         
+        toast.success('🎉 Email verified successfully!');
+        
+        // Auto-redirect to login after 3 seconds
         setTimeout(() => {
           navigate('/login', { 
             state: { 
               message: 'Email verified! You can now log in.',
               verified: true 
-            } 
+            },
+            replace: true
           });
-        }, 2000);
+        }, 3000);
       } else {
-        throw new Error('Verification completed but status not confirmed. Please try logging in.');
+        // Handle case where backend says success but emailVerified is false
+        console.warn('⚠️ Verification completed but emailVerified status unclear');
+        
+        // Wait and check status again
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        if (response.data.uid) {
+          const statusCheck = await api.post('/auth/check-verification', { 
+            uid: response.data.uid 
+          });
+          
+          console.log('📋 Status check result:', statusCheck.data);
+          
+          if (statusCheck.data.verified) {
+            setVerified(true);
+            setError(null);
+            toast.success('🎉 Email verified successfully!');
+            
+            setTimeout(() => {
+              navigate('/login', { 
+                state: { 
+                  message: 'Email verified! You can now log in.',
+                  verified: true 
+                },
+                replace: true
+              });
+            }, 3000);
+          } else {
+            throw new Error('Verification status could not be confirmed. Please try logging in.');
+          }
+        } else {
+          throw new Error('Verification response incomplete. Please try logging in.');
+        }
       }
-    }
 
-  } catch (error) {
-    console.error('❌ Verification error:', error);
-    
-    let errorMessage = 'Failed to verify email. ';
-    
-    // Handle backend error responses
-    if (error.response?.data?.error) {
-      errorMessage = error.response.data.error;
-    } else if (error.message) {
-      errorMessage += error.message;
-    } else {
-      errorMessage += 'Unknown error occurred.';
+    } catch (error) {
+      console.error('❌ Verification error:', error);
+      
+      let errorMessage = 'Failed to verify email. ';
+      
+      // Handle backend error responses
+      if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else {
+        errorMessage = 'Unknown error occurred. Please try logging in or request a new verification email.';
+      }
+      
+      setError(errorMessage);
+      setVerified(false);
+      toast.error(errorMessage);
+    } finally {
+      setVerifying(false);
     }
-    
-    setError(errorMessage);
-    toast.error(errorMessage);
-  } finally {
-    setVerifying(false);
-  }
-};
+  };
 
   const handleResendVerification = async () => {
     const email = prompt('Please enter your email address:');
@@ -119,6 +142,10 @@ const EmailVerification = () => {
       const errorMessage = error.response?.data?.error || 'Failed to send verification email';
       toast.error(errorMessage);
     }
+  };
+
+  const handleGoToLogin = () => {
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -176,7 +203,7 @@ const EmailVerification = () => {
               </p>
             </div>
             <button 
-              onClick={() => navigate('/login')}
+              onClick={handleGoToLogin}
               className="btn-primary"
               style={{ marginTop: '2rem' }}
             >
@@ -194,7 +221,7 @@ const EmailVerification = () => {
               ✕
             </div>
             <h2 style={{ color: '#ef4444', textAlign: 'center' }}>
-              Verification Failed
+              Verification Issue
             </h2>
             <div style={{
               background: '#fee2e2',
@@ -219,13 +246,13 @@ const EmailVerification = () => {
               gap: '1rem' 
             }}>
               <button 
-                onClick={handleResendVerification}
+                onClick={handleGoToLogin}
                 className="btn-primary"
               >
-                📧 Resend Verification Email
+                Try Logging In
               </button>
               <button 
-                onClick={() => navigate('/login')}
+                onClick={handleResendVerification}
                 className="btn-secondary"
                 style={{ 
                   padding: '0.75rem',
@@ -237,7 +264,7 @@ const EmailVerification = () => {
                   color: '#374151'
                 }}
               >
-                Back to Login
+                📧 Resend Verification Email
               </button>
             </div>
           </>
