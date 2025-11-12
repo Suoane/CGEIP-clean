@@ -1,4 +1,4 @@
-// frontend/src/context/AuthContext.js - FIXED VERSION
+// frontend/src/context/AuthContext.js - UPDATED VERSION
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
   signInWithEmailAndPassword, 
@@ -29,6 +29,11 @@ export const AuthProvider = ({ children }) => {
   // Function to check and sync email verification status
   const checkEmailVerification = async (user) => {
     try {
+      if (!user || !user.uid) {
+        console.warn('⚠️ No user or uid provided to checkEmailVerification');
+        return false;
+      }
+
       // Reload user to get latest emailVerified status from Firebase Auth
       await reload(user);
       
@@ -37,14 +42,18 @@ export const AuthProvider = ({ children }) => {
       // If email is verified in Auth, sync with backend
       if (user.emailVerified) {
         try {
-          const syncResponse = await api.post('/auth/check-verification', { uid: user.uid });
+          // FIXED: Use POST with uid in body instead of GET with email query
+          const syncResponse = await api.post('/auth/check-verification', { 
+            uid: user.uid 
+          });
+          
           console.log('✅ Verification sync response:', syncResponse.data);
           
           if (syncResponse.data.synced) {
-            console.log('✅ Firestore emailVerified successfully synced');
+            console.log('✅ Firestore emailVerified successfully synced from Firebase Auth');
           }
         } catch (syncError) {
-          console.error('⚠️ Could not sync verification status:', syncError);
+          console.error('⚠️ Could not sync verification status:', syncError.message);
           // Continue anyway since Firebase Auth is the source of truth
         }
       }
@@ -52,7 +61,7 @@ export const AuthProvider = ({ children }) => {
       return user.emailVerified;
     } catch (error) {
       console.error('Error checking email verification:', error);
-      return user.emailVerified;
+      return user.emailVerified || false;
     }
   };
 
@@ -170,19 +179,24 @@ export const AuthProvider = ({ children }) => {
       return true;
     } catch (error) {
       console.error('❌ Resend verification error:', error);
-      const errorMessage = error.response?.data?.error || 'Failed to send verification email';
+      const errorMessage = error.response?.data?.message || error.response?.data?.error || 'Failed to send verification email';
       toast.error(errorMessage);
       throw error;
     }
   };
 
-  // Check verification status
+  // Check verification status (using POST with uid)
   const checkVerificationStatus = async (uid) => {
     try {
+      if (!uid) {
+        console.warn('⚠️ No uid provided to checkVerificationStatus');
+        return null;
+      }
+
       const response = await api.post('/auth/check-verification', { uid });
       return response.data;
     } catch (error) {
-      console.error('Error checking verification status:', error);
+      console.error('Error checking verification status:', error.message);
       return null;
     }
   };
@@ -195,32 +209,47 @@ export const AuthProvider = ({ children }) => {
       if (user) {
         console.log(`👤 Auth state changed - User detected: ${user.email}`);
         
-        // Reload user to get fresh emailVerified status
-        await reload(user);
-        console.log(`📧 Current emailVerified status: ${user.emailVerified}`);
-        
-        if (user.emailVerified) {
-          // Sync verification status with backend
-          await checkEmailVerification(user);
+        try {
+          // Reload user to get fresh emailVerified status
+          await reload(user);
+          console.log(`📧 Current emailVerified status: ${user.emailVerified}`);
           
-          setCurrentUser(user);
-          
-          // Get user role
-          try {
-            const userDoc = await getDoc(doc(db, 'users', user.uid));
-            if (userDoc.exists()) {
-              const role = userDoc.data().role;
-              setUserRole(role);
-              console.log(`✅ User role set: ${role}`);
+          if (user.emailVerified) {
+            // Sync verification status with backend
+            const isVerified = await checkEmailVerification(user);
+            
+            if (isVerified) {
+              setCurrentUser(user);
+              
+              // Get user role
+              try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (userDoc.exists()) {
+                  const role = userDoc.data().role;
+                  setUserRole(role);
+                  console.log(`✅ User role set: ${role}`);
+                } else {
+                  console.warn('⚠️ User document not found in Firestore');
+                  setUserRole(null);
+                }
+              } catch (error) {
+                console.error('❌ Error fetching user role:', error);
+                setUserRole(null);
+              }
             } else {
-              console.warn('⚠️ User document not found in Firestore');
+              // Verification check failed
+              console.log('⚠️ Verification check returned false');
+              setCurrentUser(null);
+              setUserRole(null);
             }
-          } catch (error) {
-            console.error('❌ Error fetching user role:', error);
+          } else {
+            // User not verified, don't set as current user
+            console.log('⚠️ Email not verified - user not authenticated');
+            setCurrentUser(null);
+            setUserRole(null);
           }
-        } else {
-          // User not verified, don't set as current user
-          console.log('⚠️ Email not verified - user not authenticated');
+        } catch (error) {
+          console.error('❌ Error in auth state listener:', error);
           setCurrentUser(null);
           setUserRole(null);
         }

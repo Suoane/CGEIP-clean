@@ -1,4 +1,4 @@
-// frontend/src/App.js - WITH FOOTER
+// frontend/src/App.js - WITH AUTO-APPLICATION DASHBOARD
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
@@ -31,6 +31,7 @@ import ViewAdmissions from './components/student/ViewAdmissions';
 import StudentProfile from './components/student/StudentProfile';
 import UploadDocuments from './components/student/UploadDocuments';
 import AutoMatchDashboard from './components/student/AutoMatchDashboard';
+import AutoApplicationDashboard from './components/student/AutoApplicationDashboard'; // NEW
 
 // Institute Components
 import InstituteDashboard from './components/institute/InstituteDashboard';
@@ -75,6 +76,7 @@ function App() {
               <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student']}><StudentProfile /></ProtectedRoute>} />
               <Route path="/student/upload-documents" element={<ProtectedRoute allowedRoles={['student']}><UploadDocuments /></ProtectedRoute>} />
               <Route path="/student/matches" element={<ProtectedRoute allowedRoles={['student']}><AutoMatchDashboard /></ProtectedRoute>} />
+              <Route path="/student/auto-apply" element={<ProtectedRoute allowedRoles={['student']}><AutoApplicationDashboard /></ProtectedRoute>} /> {/* NEW */}
 
               {/* Institute Routes */}
               <Route path="/institute/dashboard" element={<ProtectedRoute allowedRoles={['institute']}><InstituteDashboard /></ProtectedRoute>} />
