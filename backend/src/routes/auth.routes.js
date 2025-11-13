@@ -9,7 +9,7 @@ const crypto = require('crypto');
 // Register new user
 router.post('/register', async (req, res) => {
   try {
-    const { email, password, role, additionalData } = req.body;
+    const { email, password, role, personalInfo, companyName, institutionName, contactInfo, ...otherData } = req.body;
 
     // Validate input
     if (!email || !password || !role) {
@@ -46,8 +46,8 @@ router.post('/register', async (req, res) => {
     if (role === 'student') {
       await db.collection('students').doc(userRecord.uid).set({
         id: userRecord.uid,
-        personalInfo: additionalData?.personalInfo || {},
-        academicInfo: additionalData?.academicInfo || {},
+        personalInfo: personalInfo || {},
+        academicInfo: {},
         documents: {},
         admittedInstitution: null,
         applicationCount: 0,
@@ -57,14 +57,21 @@ router.post('/register', async (req, res) => {
     } else if (role === 'company') {
       await db.collection('companies').doc(userRecord.uid).set({
         id: userRecord.uid,
-        companyName: additionalData?.companyName || '',
+        companyName: companyName || '',
+        contactInfo: contactInfo || { email },
+        industry: otherData.industry || '',
+        location: otherData.location || '',
+        description: otherData.description || '',
         status: 'pending',
         createdAt: new Date()
       });
     } else if (role === 'institute') {
       await db.collection('institutions').doc(userRecord.uid).set({
         id: userRecord.uid,
-        name: additionalData?.institutionName || '',
+        name: institutionName || '',
+        contactInfo: contactInfo || { email },
+        location: otherData.location || '',
+        description: otherData.description || '',
         status: 'active',
         createdAt: new Date()
       });
@@ -72,10 +79,7 @@ router.post('/register', async (req, res) => {
 
     // Send verification email
     const verificationLink = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}&uid=${userRecord.uid}`;
-    const userName = additionalData?.personalInfo?.firstName || 
-                      additionalData?.companyName || 
-                      additionalData?.institutionName || 
-                      email.split('@')[0];
+    const userName = personalInfo?.firstName || companyName || institutionName || email.split('@')[0];
     
     await emailService.sendVerificationEmail(email, verificationLink, userName);
 
