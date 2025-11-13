@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { toast } from 'react-toastify';
-import { FaEdit, FaTrash, FaPlus, FaTimes } from 'react-icons/fa';
 import '../admin/Admin.css';
 
 const ManageFaculties = () => {
@@ -125,7 +124,7 @@ const ManageFaculties = () => {
       <div className="page-header">
         <h1>Manage Faculties</h1>
         <button onClick={() => setShowModal(true)} className="btn-primary">
-          <FaPlus /> Add Faculty
+          Add Faculty
         </button>
       </div>
 
@@ -161,14 +160,14 @@ const ManageFaculties = () => {
                         className="btn-icon btn-edit"
                         title="Edit"
                       >
-                        <FaEdit />
+                        Edit
                       </button>
                       <button
                         onClick={() => handleDelete(faculty.id, faculty.facultyName)}
                         className="btn-icon btn-delete"
                         title="Delete"
                       >
-                        <FaTrash />
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -186,7 +185,7 @@ const ManageFaculties = () => {
             <div className="modal-header">
               <h2>{editMode ? 'Edit Faculty' : 'Add New Faculty'}</h2>
               <button onClick={resetForm} className="btn-close">
-                <FaTimes />
+                ×
               </button>
             </div>
 

@@ -1,12 +1,32 @@
-// backend/src/routes/upload.routes.js - FIXED VERSION
+// backend/src/routes/upload.routes.js
 const express = require('express');
 const router = express.Router();
+const multer = require('multer');
 const { verifyToken, authorizeRoles } = require('../middleware/auth');
-const { upload } = require('../config/cloudinary');
-const { db } = require('../config/firebase');
+const { storage, admin, db } = require('../config/firebase');
+const autoMatching = require('../services/autoMatching.service');
 
-// Upload student documents (SIMPLIFIED - No transcript parsing for now)
-router.post('/student/documents',
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    if (allowedTypes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Invalid file type. Only PDF, JPEG, and PNG are allowed.'));
+    }
+  }
+});
+
+/**
+ * Upload student documents (ID Card, Transcript, Certificate)
+ */
+router.post(
+  '/student/documents',
   verifyToken,
   authorizeRoles('student'),
   upload.fields([
@@ -19,210 +39,80 @@ router.post('/student/documents',
       const studentId = req.user.uid;
       const files = req.files;
 
-      console.log(`📤 Processing document upload for student: ${studentId}`);
-      console.log('Files received:', Object.keys(files || {}));
-
       if (!files || Object.keys(files).length === 0) {
-        return res.status(400).json({
-          success: false,
-          error: 'No files uploaded'
-        });
+        return res.status(400).json({ error: 'No files uploaded' });
       }
 
-      // Get current student data
-      const studentDoc = await db.collection('students').doc(studentId).get();
-      const studentData = studentDoc.exists ? studentDoc.data() : {};
-      const documents = studentData.documents || {};
+      console.log(`📤 Uploading documents for student: ${studentId}`);
 
-      // Process each uploaded file
-      if (files.idCard && files.idCard[0]) {
-        documents.idCard = files.idCard[0].path;
-        documents.idCardName = files.idCard[0].originalname;
-        documents.idCardUploadedAt = new Date();
-        console.log('✓ ID Card uploaded:', documents.idCard);
+      const documentUrls = {};
+
+      // Store file data as base64 in Firestore (no Cloud Storage needed)
+      for (const [fieldName, fileArray] of Object.entries(files)) {
+        const file = fileArray[0];
+        const base64Data = file.buffer.toString('base64');
+        
+        documentUrls[fieldName] = {
+          filename: file.originalname,
+          mimetype: file.mimetype,
+          size: file.size,
+          data: base64Data,
+          uploadedAt: new Date().toISOString()
+        };
+        
+        console.log(`✅ ${fieldName} processed successfully (${file.size} bytes)`);
       }
 
-      if (files.certificate && files.certificate[0]) {
-        documents.certificate = files.certificate[0].path;
-        documents.certificateName = files.certificate[0].originalname;
-        documents.certificateUploadedAt = new Date();
-        console.log('✓ Certificate uploaded:', documents.certificate);
-      }
+      // Update student document in Firestore
+      const studentRef = db.collection('students').doc(studentId);
+      const studentDoc = await studentRef.get();
+      const currentDocs = studentDoc.exists ? studentDoc.data().documents || {} : {};
 
-      if (files.transcript && files.transcript[0]) {
-        documents.transcript = files.transcript[0].path;
-        documents.transcriptName = files.transcript[0].originalname;
-        documents.transcriptUploadedAt = new Date();
-        console.log('✓ Transcript uploaded:', documents.transcript);
-      }
-
-      // Update student document with documents
-      const updateData = {
-        documents,
-        documentsUpdatedAt: new Date(),
-        documentsComplete: !!(documents.transcript && documents.idCard)
-      };
-
-      await db.collection('students').doc(studentId).update(updateData);
-      console.log('✅ Student documents updated in Firestore');
-
-      // Prepare response
-      const response = {
-        success: true,
-        message: 'Documents uploaded successfully',
-        documents,
-        documentsComplete: updateData.documentsComplete
-      };
-
-      res.json(response);
-
-    } catch (error) {
-      console.error('❌ Error uploading documents:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message
+      await studentRef.update({
+        documents: {
+          ...currentDocs,
+          ...documentUrls
+        },
+        documentsUploadedAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
-    }
-  }
-);
 
-// Simple single file upload endpoint
-router.post('/upload',
-  verifyToken,
-  upload.single('file'),
-  async (req, res) => {
-    try {
-      console.log('📤 Single file upload started...');
-      
-      if (!req.file) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'No file uploaded' 
-        });
+      console.log(`✅ Documents saved to Firestore for student: ${studentId}`);
+
+      // If transcript was uploaded, trigger auto-matching
+      let autoMatchingResults = null;
+      if (documentUrls.transcript) {
+        console.log('🔍 Starting auto-matching for uploaded transcript...');
+        const studentData = (await studentRef.get()).data();
+        autoMatchingResults = await autoMatching.findMatchingCourses(studentData);
+        console.log(`✨ Found ${autoMatchingResults.totalFound} matching courses`);
       }
-
-      console.log('✓ File uploaded to Cloudinary');
-      console.log('  - Original name:', req.file.originalname);
-      console.log('  - Cloudinary URL:', req.file.path);
-      console.log('  - Public ID:', req.file.filename);
 
       res.json({
         success: true,
-        message: 'File uploaded successfully',
-        url: req.file.path,
-        publicId: req.file.filename,
-        originalName: req.file.originalname
+        message: 'Documents uploaded successfully',
+        documents: documentUrls,
+        autoMatching: autoMatchingResults ? {
+          coursesFound: autoMatchingResults.totalFound,
+          topMatches: autoMatchingResults.courses.slice(0, 5)
+        } : null
       });
 
     } catch (error) {
       console.error('❌ Upload error:', error);
-      res.status(500).json({ 
-        success: false, 
-        error: error.message 
-      });
-    }
-  }
-);
-
-// Get auto-matched courses for student (using existing autoMatching service)
-router.get('/student/matched-courses',
-  verifyToken,
-  authorizeRoles('student'),
-  async (req, res) => {
-    try {
-      const studentId = req.user.uid;
-      
-      const studentDoc = await db.collection('students').doc(studentId).get();
-      if (!studentDoc.exists) {
-        return res.status(404).json({
-          success: false,
-          error: 'Student profile not found'
-        });
-      }
-
-      const studentData = studentDoc.data();
-      
-      console.log(`🔍 Finding courses for student: ${studentId}`);
-      
-      // Check if autoMatching service exists
-      try {
-        const autoMatching = require('../services/autoMatching.service');
-        const matchingCourses = await autoMatching.findMatchingCourses(studentData);
-        res.json(matchingCourses);
-      } catch (serviceError) {
-        console.log('⚠️ AutoMatching service not available yet');
-        res.json({
-          success: true,
-          message: 'Auto-matching feature coming soon',
-          courses: [],
-          totalFound: 0
-        });
-      }
-    } catch (error) {
-      console.error('Error finding matched courses:', error);
       res.status(500).json({
-        success: false,
-        error: error.message
+        error: 'Failed to upload documents',
+        message: error.message
       });
     }
   }
 );
 
-// Get auto-matched jobs for completed students
-router.get('/student/matched-jobs',
-  verifyToken,
-  authorizeRoles('student'),
-  async (req, res) => {
-    try {
-      const studentId = req.user.uid;
-      
-      const studentDoc = await db.collection('students').doc(studentId).get();
-      if (!studentDoc.exists) {
-        return res.status(404).json({
-          success: false,
-          error: 'Student profile not found'
-        });
-      }
-
-      const studentData = studentDoc.data();
-
-      if (studentData.studyStatus !== 'completed') {
-        return res.json({
-          success: false,
-          message: 'Complete your studies first to see job opportunities',
-          jobs: [],
-          totalFound: 0
-        });
-      }
-
-      console.log(`🔍 Finding jobs for student: ${studentId}`);
-      
-      // Check if autoMatching service exists
-      try {
-        const autoMatching = require('../services/autoMatching.service');
-        const matchingJobs = await autoMatching.findMatchingJobs(studentData);
-        res.json(matchingJobs);
-      } catch (serviceError) {
-        console.log('⚠️ AutoMatching service not available yet');
-        res.json({
-          success: true,
-          message: 'Job matching feature coming soon',
-          jobs: [],
-          totalFound: 0
-        });
-      }
-    } catch (error) {
-      console.error('Error finding matched jobs:', error);
-      res.status(500).json({
-        success: false,
-        error: error.message
-      });
-    }
-  }
-);
-
-// Upload completion documents (when student finishes studies)
-router.post('/student/completion-documents',
+/**
+ * Upload completion documents (after studies)
+ */
+router.post(
+  '/student/completion-documents',
   verifyToken,
   authorizeRoles('student'),
   upload.fields([
@@ -233,73 +123,165 @@ router.post('/student/completion-documents',
     try {
       const studentId = req.user.uid;
       const files = req.files;
-      const { gpa, fieldOfStudy, institutionId } = req.body;
+      const { gpa, fieldOfStudy } = req.body;
 
-      console.log(`📤 Processing completion documents for: ${studentId}`);
+      if (!files.transcript) {
+        return res.status(400).json({ error: 'Transcript is required' });
+      }
 
-      // Prepare completion data
-      const completionData = {
-        transcript: files.transcript ? files.transcript[0].path : null,
-        certificates: files.completionCertificate ? files.completionCertificate.map(f => f.path) : [],
-        gpa: parseFloat(gpa) || 0,
-        fieldOfStudy: fieldOfStudy || '',
-        institutionId: institutionId || '',
-        completionDate: new Date()
+      console.log(`📤 Uploading completion documents for: ${studentId}`);
+
+      const bucket = storage.bucket();
+      const documentUrls = {
+        transcript: null,
+        certificates: []
       };
 
-      // Update student status and completion data
-      await db.collection('students').doc(studentId).update({
-        studyStatus: 'completed',
-        completionData: completionData,
-        completedAt: new Date()
+      // Upload transcript
+      const transcriptFile = files.transcript[0];
+      const transcriptFileName = `students/${studentId}/completion/transcript_${Date.now()}.pdf`;
+      const transcriptUpload = bucket.file(transcriptFileName);
+
+      await new Promise((resolve, reject) => {
+        const stream = transcriptUpload.createWriteStream({
+          metadata: { contentType: transcriptFile.mimetype }
+        });
+        stream.on('error', reject);
+        stream.on('finish', resolve);
+        stream.end(transcriptFile.buffer);
       });
 
-      console.log('✓ Completion documents uploaded');
+      await transcriptUpload.makePublic();
+      documentUrls.transcript = `https://storage.googleapis.com/${bucket.name}/${transcriptFileName}`;
 
-      // Try to find matching jobs if service exists
-      let jobMatching = {
-        jobsFound: 0,
-        topMatches: [],
-        message: 'Job matching feature coming soon'
-      };
+      // Upload certificates
+      if (files.completionCertificate) {
+        for (const cert of files.completionCertificate) {
+          const certFileName = `students/${studentId}/completion/cert_${Date.now()}_${cert.originalname}`;
+          const certUpload = bucket.file(certFileName);
 
-      try {
-        const autoMatching = require('../services/autoMatching.service');
-        const studentDoc = await db.collection('students').doc(studentId).get();
-        const studentData = studentDoc.data();
-        
-        const matchingJobs = await autoMatching.findMatchingJobs(studentData);
-        console.log(`✓ Found ${matchingJobs.totalFound} matching jobs`);
+          await new Promise((resolve, reject) => {
+            const stream = certUpload.createWriteStream({
+              metadata: { contentType: cert.mimetype }
+            });
+            stream.on('error', reject);
+            stream.on('finish', resolve);
+            stream.end(cert.buffer);
+          });
 
-        jobMatching = {
-          jobsFound: matchingJobs.totalFound,
-          topMatches: matchingJobs.jobs.slice(0, 5).map(job => ({
-            id: job.id,
-            title: job.title,
-            company: job.company?.companyName,
-            matchScore: job.matchScore,
-            location: job.location
-          })),
-          message: matchingJobs.totalFound > 0 
-            ? `Congratulations! We found ${matchingJobs.totalFound} jobs matching your qualifications!`
-            : 'Keep building your skills! More opportunities will become available.'
-        };
-      } catch (serviceError) {
-        console.log('⚠️ AutoMatching service not available for jobs');
+          await certUpload.makePublic();
+          documentUrls.certificates.push(
+            `https://storage.googleapis.com/${bucket.name}/${certFileName}`
+          );
+        }
       }
+
+      // Update student status
+      await db.collection('students').doc(studentId).update({
+        studyStatus: 'completed',
+        completionData: {
+          transcript: documentUrls.transcript,
+          certificates: documentUrls.certificates,
+          gpa: parseFloat(gpa),
+          fieldOfStudy,
+          completionDate: admin.firestore.FieldValue.serverTimestamp()
+        },
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      console.log(`✅ Completion documents uploaded for: ${studentId}`);
 
       res.json({
         success: true,
         message: 'Completion documents uploaded successfully',
-        completionData,
-        jobMatching
+        documents: documentUrls
       });
 
     } catch (error) {
-      console.error('Error uploading completion documents:', error);
+      console.error('❌ Completion upload error:', error);
       res.status(500).json({
-        success: false,
-        error: error.message
+        error: 'Failed to upload completion documents',
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * Get matched courses for student
+ */
+router.get(
+  '/student/matched-courses',
+  verifyToken,
+  authorizeRoles('student'),
+  async (req, res) => {
+    try {
+      const studentId = req.user.uid;
+      const studentDoc = await db.collection('students').doc(studentId).get();
+
+      if (!studentDoc.exists) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+
+      const studentData = studentDoc.data();
+      const matchingResults = await autoMatching.findMatchingCourses(studentData);
+
+      res.json({
+        success: true,
+        courses: matchingResults.courses,
+        totalFound: matchingResults.totalFound,
+        recommendations: matchingResults.recommendations
+      });
+
+    } catch (error) {
+      console.error('Error fetching matched courses:', error);
+      res.status(500).json({
+        error: 'Failed to fetch matched courses',
+        message: error.message
+      });
+    }
+  }
+);
+
+/**
+ * Get matched jobs for completed students
+ */
+router.get(
+  '/student/matched-jobs',
+  verifyToken,
+  authorizeRoles('student'),
+  async (req, res) => {
+    try {
+      const studentId = req.user.uid;
+      const studentDoc = await db.collection('students').doc(studentId).get();
+
+      if (!studentDoc.exists) {
+        return res.status(404).json({ error: 'Student not found' });
+      }
+
+      const studentData = studentDoc.data();
+
+      if (studentData.studyStatus !== 'completed') {
+        return res.status(400).json({
+          error: 'Student must complete studies first',
+          studyStatus: studentData.studyStatus
+        });
+      }
+
+      const matchingResults = await autoMatching.findMatchingJobs(studentData);
+
+      res.json({
+        success: true,
+        jobs: matchingResults.jobs,
+        totalFound: matchingResults.totalFound,
+        recommendations: matchingResults.recommendations
+      });
+
+    } catch (error) {
+      console.error('Error fetching matched jobs:', error);
+      res.status(500).json({
+        error: 'Failed to fetch matched jobs',
+        message: error.message
       });
     }
   }

@@ -30,8 +30,10 @@ import ApplyCourse from './components/student/ApplyCourse';
 import ViewAdmissions from './components/student/ViewAdmissions';
 import StudentProfile from './components/student/StudentProfile';
 import UploadDocuments from './components/student/UploadDocuments';
+import EnterResults from './components/student/EnterResults';
+import ViewMatchingCourses from './components/student/ViewMatchingCourses';
 import AutoMatchDashboard from './components/student/AutoMatchDashboard';
-import AutoApplicationDashboard from './components/student/AutoApplicationDashboard'; // NEW
+import AutoApplicationDashboard from './components/student/AutoApplicationDashboard';
 
 // Institute Components
 import InstituteDashboard from './components/institute/InstituteDashboard';
@@ -72,11 +74,13 @@ function App() {
               {/* Student Routes */}
               <Route path="/student/dashboard" element={<ProtectedRoute allowedRoles={['student']}><StudentDashboard /></ProtectedRoute>} />
               <Route path="/student/apply-course" element={<ProtectedRoute allowedRoles={['student']}><ApplyCourse /></ProtectedRoute>} />
+              <Route path="/student/view-courses" element={<ProtectedRoute allowedRoles={['student']}><ViewMatchingCourses /></ProtectedRoute>} />
               <Route path="/student/admissions" element={<ProtectedRoute allowedRoles={['student']}><ViewAdmissions /></ProtectedRoute>} />
               <Route path="/student/profile" element={<ProtectedRoute allowedRoles={['student']}><StudentProfile /></ProtectedRoute>} />
               <Route path="/student/upload-documents" element={<ProtectedRoute allowedRoles={['student']}><UploadDocuments /></ProtectedRoute>} />
+              <Route path="/student/enter-results" element={<ProtectedRoute allowedRoles={['student']}><EnterResults /></ProtectedRoute>} />
               <Route path="/student/matches" element={<ProtectedRoute allowedRoles={['student']}><AutoMatchDashboard /></ProtectedRoute>} />
-              <Route path="/student/auto-apply" element={<ProtectedRoute allowedRoles={['student']}><AutoApplicationDashboard /></ProtectedRoute>} /> {/* NEW */}
+              <Route path="/student/auto-apply" element={<ProtectedRoute allowedRoles={['student']}><AutoApplicationDashboard /></ProtectedRoute>} />
 
               {/* Institute Routes */}
               <Route path="/institute/dashboard" element={<ProtectedRoute allowedRoles={['institute']}><InstituteDashboard /></ProtectedRoute>} />
@@ -108,9 +112,44 @@ function App() {
 // Home Component
 const Home = () => (
   <div className="home-container">
-    <h1>🎓 CGEIP - Centralized Gateway for Education and Industry Placement</h1>
-    <p>Welcome to the Centralized Gateway for Education and Industry Placement (CGEIP).</p>
-    <p>Please login or register to continue.</p>
+    <div className="home-content">
+      <h1>CGEIP - Centralized Gateway for Education and Industry Placement</h1>
+      <p className="home-subtitle">Welcome to CGEIP, your comprehensive platform connecting education and career opportunities.</p>
+      
+      <div className="home-features">
+        <div className="feature-card">
+          <h3>For Students</h3>
+          <ul>
+            <li>Upload academic documents and qualifications</li>
+            <li>Submit your exam results and academic performance</li>
+            <li>Discover and apply to courses that match your qualifications</li>
+            <li>Track your applications and academic journey</li>
+          </ul>
+        </div>
+        
+        <div className="feature-card">
+          <h3>For Educational Institutions</h3>
+          <ul>
+            <li>Create and manage faculties and courses</li>
+            <li>Define specific qualification requirements for courses</li>
+            <li>Review student applications and manage admissions</li>
+            <li>Monitor student progress and course performance</li>
+          </ul>
+        </div>
+        
+        <div className="feature-card">
+          <h3>For Administrators</h3>
+          <ul>
+            <li>Oversee system operations and user management</li>
+            <li>Manage institutions and companies</li>
+            <li>Generate system reports and analytics</li>
+            <li>Ensure platform security and compliance</li>
+          </ul>
+        </div>
+      </div>
+      
+      <p className="home-cta">Please login or register to continue.</p>
+    </div>
   </div>
 );
 

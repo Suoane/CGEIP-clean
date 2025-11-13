@@ -6,7 +6,7 @@
   justify-content: center;
   align-items: center;
   padding: 2rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0f172a 0%, #1a2f5a 100%);
 }
 
 .auth-card {
@@ -20,9 +20,10 @@
 
 .auth-card h2 {
   text-align: center;
-  color: #2d3748;
+  color: #0f172a;
   margin-bottom: 2rem;
   font-size: 2rem;
+  font-weight: 700;
 }
 
 .form-group {
@@ -32,7 +33,7 @@
 .form-group label {
   display: block;
   margin-bottom: 0.5rem;
-  color: #4a5568;
+  color: #1e293b;
   font-weight: 600;
   font-size: 0.875rem;
   text-transform: uppercase;
@@ -44,32 +45,32 @@
 .form-group textarea {
   width: 100%;
   padding: 0.875rem 1rem;
-  border: 2px solid #e2e8f0;
+  border: 2px solid #cbd5e1;
   border-radius: 8px;
   font-size: 1rem;
   transition: all 0.3s ease;
-  background: white;
+  background: #f8fafc;
 }
 
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #17a2b8;
+  box-shadow: 0 0 0 3px rgba(23, 162, 184, 0.1);
 }
 
 .form-group small {
   display: block;
   margin-top: 0.5rem;
-  color: #718096;
+  color: #64748b;
   font-size: 0.875rem;
 }
 
 .btn-primary {
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -82,7 +83,7 @@
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 20px rgba(23, 162, 184, 0.3);
 }
 
 .btn-primary:disabled {
@@ -94,17 +95,18 @@
 .auth-footer {
   text-align: center;
   margin-top: 2rem;
-  color: #718096;
+  color: #64748b;
   font-size: 0.875rem;
 }
 
 .auth-footer a {
-  color: #667eea;
+  color: #17a2b8;
   text-decoration: none;
   font-weight: 600;
 }
 
 .auth-footer a:hover {
+  color: #138496;
   text-decoration: underline;
 }
 

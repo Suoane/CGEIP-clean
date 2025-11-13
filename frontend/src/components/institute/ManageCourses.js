@@ -4,7 +4,6 @@ import { useAuth } from '../../context/AuthContext';
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 import { toast } from 'react-toastify';
-import { FaEdit, FaTrash, FaPlus, FaTimes, FaToggleOn, FaToggleOff } from 'react-icons/fa';
 import '../admin/Admin.css';
 
 const ManageCourses = () => {
@@ -22,8 +21,17 @@ const ManageCourses = () => {
     duration: '',
     level: '',
     description: '',
-    admissionStatus: 'closed'
+    admissionStatus: 'closed',
+    requiredResults: {
+      minMathScore: '',
+      minEnglishScore: '',
+      minGPA: '',
+      requiredFieldOfStudy: ''
+    },
+    requiredSubjects: []
   });
+
+  const [newSubject, setNewSubject] = useState({ name: '', minimumSymbol: '' });
 
   useEffect(() => {
     fetchFaculties();
@@ -74,7 +82,63 @@ const ManageCourses = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Handle nested requiredResults fields
+    if (name.startsWith('required')) {
+      let fieldName = '';
+      if (name === 'requiredMathScore') fieldName = 'minMathScore';
+      else if (name === 'requiredEnglishScore') fieldName = 'minEnglishScore';
+      else if (name === 'requiredGPA') fieldName = 'minGPA';
+      else if (name === 'requiredFieldOfStudy') fieldName = 'requiredFieldOfStudy';
+      
+      setFormData(prev => ({
+        ...prev,
+        requiredResults: {
+          ...prev.requiredResults,
+          [fieldName]: value
+        }
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const handleAddSubject = () => {
+    if (!newSubject.name.trim()) {
+      toast.error('Please enter a subject name');
+      return;
+    }
+    
+    if (!newSubject.minimumSymbol) {
+      toast.error('Please enter a minimum symbol/mark');
+      return;
+    }
+
+    const symbol = parseFloat(newSubject.minimumSymbol);
+    if (isNaN(symbol) || symbol < 0 || symbol > 100) {
+      toast.error('Symbol/mark must be between 0 and 100');
+      return;
+    }
+
+    // Check if subject already exists
+    if (formData.requiredSubjects.some(s => s.name.toLowerCase() === newSubject.name.toLowerCase())) {
+      toast.error('This subject is already added');
+      return;
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      requiredSubjects: [...prev.requiredSubjects, { name: newSubject.name.trim(), minimumSymbol: symbol }]
+    }));
+    setNewSubject({ name: '', minimumSymbol: '' });
+    toast.success('Subject added');
+  };
+
+  const handleRemoveSubject = (index) => {
+    setFormData(prev => ({
+      ...prev,
+      requiredSubjects: prev.requiredSubjects.filter((_, i) => i !== index)
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -118,8 +182,16 @@ const ManageCourses = () => {
       duration: course.duration || '',
       level: course.level || '',
       description: course.description || '',
-      admissionStatus: course.admissionStatus || 'closed'
+      admissionStatus: course.admissionStatus || 'closed',
+      requiredResults: course.requiredResults || {
+        minMathScore: '',
+        minEnglishScore: '',
+        minGPA: '',
+        requiredFieldOfStudy: ''
+      },
+      requiredSubjects: course.requiredSubjects || []
     });
+    setNewSubject({ name: '', minimumSymbol: '' });
     setEditMode(true);
     setShowModal(true);
   };
@@ -163,8 +235,16 @@ const ManageCourses = () => {
       duration: '',
       level: '',
       description: '',
-      admissionStatus: 'closed'
+      admissionStatus: 'closed',
+      requiredResults: {
+        minMathScore: '',
+        minEnglishScore: '',
+        minGPA: '',
+        requiredFieldOfStudy: ''
+      },
+      requiredSubjects: []
     });
+    setNewSubject({ name: '', minimumSymbol: '' });
     setCurrentCourse(null);
     setEditMode(false);
     setShowModal(false);
@@ -188,7 +268,7 @@ const ManageCourses = () => {
           }} 
           className="btn-primary"
         >
-          <FaPlus /> Add Course
+          Add Course
         </button>
       </div>
 
@@ -238,21 +318,21 @@ const ManageCourses = () => {
                         className={`btn-icon ${course.admissionStatus === 'open' ? 'btn-success' : 'btn-warning'}`}
                         title={course.admissionStatus === 'open' ? 'Close Admissions' : 'Open Admissions'}
                       >
-                        {course.admissionStatus === 'open' ? <FaToggleOn /> : <FaToggleOff />}
+                        {course.admissionStatus === 'open' ? 'Close' : 'Open'}
                       </button>
                       <button
                         onClick={() => handleEdit(course)}
                         className="btn-icon btn-edit"
                         title="Edit"
                       >
-                        <FaEdit />
+                        Edit
                       </button>
                       <button
                         onClick={() => handleDelete(course.id, course.courseName)}
                         className="btn-icon btn-delete"
                         title="Delete"
                       >
-                        <FaTrash />
+                        Delete
                       </button>
                     </div>
                   </td>
@@ -270,7 +350,7 @@ const ManageCourses = () => {
             <div className="modal-header">
               <h2>{editMode ? 'Edit Course' : 'Add New Course'}</h2>
               <button onClick={resetForm} className="btn-close">
-                <FaTimes />
+                ×
               </button>
             </div>
 
@@ -369,6 +449,152 @@ const ManageCourses = () => {
                   placeholder="Brief description of the course..."
                 />
               </div>
+
+              <div className="form-section-divider">
+                <h3>Required Qualifications</h3>
+                <p className="section-info">Specify the minimum qualifications students must have</p>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Minimum Mathematics Score (0-100)</label>
+                  <input
+                    type="number"
+                    name="requiredMathScore"
+                    value={formData.requiredResults.minMathScore}
+                    onChange={handleChange}
+                    min="0"
+                    max="100"
+                    placeholder="e.g., 60"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Minimum English Score (0-100)</label>
+                  <input
+                    type="number"
+                    name="requiredEnglishScore"
+                    value={formData.requiredResults.minEnglishScore}
+                    onChange={handleChange}
+                    min="0"
+                    max="100"
+                    placeholder="e.g., 55"
+                  />
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Minimum GPA (0-4.0)</label>
+                  <input
+                    type="number"
+                    name="requiredGPA"
+                    value={formData.requiredResults.minGPA}
+                    onChange={handleChange}
+                    min="0"
+                    max="4.0"
+                    step="0.1"
+                    placeholder="e.g., 2.5"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label>Required Field of Study</label>
+                  <select
+                    name="requiredFieldOfStudy"
+                    value={formData.requiredResults.requiredFieldOfStudy}
+                    onChange={handleChange}
+                  >
+                    <option value="">Any field (optional)</option>
+                    <option value="Science">Science</option>
+                    <option value="Arts">Arts</option>
+                    <option value="Commerce">Commerce</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Engineering">Engineering</option>
+                    <option value="Business">Business</option>
+                    <option value="Medicine">Medicine</option>
+                    <option value="Law">Law</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="form-section-divider">
+                <h3>Required Subjects</h3>
+                <p className="section-info">Add specific subjects and their minimum marks/symbols</p>
+              </div>
+
+              <div className="form-group">
+                <label>Subject Name</label>
+                <input
+                  type="text"
+                  value={newSubject.name}
+                  onChange={(e) => setNewSubject({ ...newSubject, name: e.target.value })}
+                  placeholder="e.g., Physics, Chemistry, Biology"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Minimum Symbol/Mark (0-100)</label>
+                  <input
+                    type="number"
+                    value={newSubject.minimumSymbol}
+                    onChange={(e) => setNewSubject({ ...newSubject, minimumSymbol: e.target.value })}
+                    min="0"
+                    max="100"
+                    placeholder="e.g., 70"
+                  />
+                </div>
+                <div className="form-group">
+                  <button 
+                    type="button" 
+                    onClick={handleAddSubject}
+                    className="btn-primary"
+                    style={{ marginTop: '1.5rem' }}
+                  >
+                    Add Subject
+                  </button>
+                </div>
+              </div>
+
+              {formData.requiredSubjects.length > 0 && (
+                <div className="subjects-list" style={{ 
+                  marginTop: '1rem', 
+                  padding: '1rem', 
+                  backgroundColor: '#f0f9ff',
+                  borderRadius: '4px',
+                  border: '1px solid #17a2b8'
+                }}>
+                  <h4 style={{ marginTop: 0, color: '#17a2b8' }}>Added Subjects:</h4>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid #17a2b8' }}>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Subject</th>
+                        <th style={{ textAlign: 'left', padding: '0.5rem' }}>Min Symbol</th>
+                        <th style={{ textAlign: 'center', padding: '0.5rem' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {formData.requiredSubjects.map((subject, index) => (
+                        <tr key={index} style={{ borderBottom: '1px solid #e5e7eb' }}>
+                          <td style={{ padding: '0.5rem' }}>{subject.name}</td>
+                          <td style={{ padding: '0.5rem' }}>{subject.minimumSymbol}/100</td>
+                          <td style={{ textAlign: 'center', padding: '0.5rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveSubject(index)}
+                              className="btn-icon btn-delete"
+                              style={{ padding: '0.25rem 0.5rem' }}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
 
               <div className="modal-actions">
                 <button type="button" onClick={resetForm} className="btn-secondary">

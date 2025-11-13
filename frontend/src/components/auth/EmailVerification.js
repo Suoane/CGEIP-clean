@@ -32,17 +32,11 @@ const EmailVerification = () => {
 
   const verifyEmail = async () => {
     try {
-      const oobCode = searchParams.get('oobCode');
-      const mode = searchParams.get('mode');
+      const token = searchParams.get('token');
+      const uid = searchParams.get('uid');
       
-      if (!oobCode) {
+      if (!token || !uid) {
         setError('Invalid verification link. Please request a new verification email.');
-        setVerifying(false);
-        return;
-      }
-
-      if (mode !== 'verifyEmail') {
-        setError('Invalid verification mode.');
         setVerifying(false);
         return;
       }
@@ -50,11 +44,11 @@ const EmailVerification = () => {
       console.log('🔄 Starting email verification...');
 
       // Call backend verification endpoint
-      const response = await api.post('/auth/verify-email', { oobCode });
+      const response = await api.post('/auth/verify-email', { token, uid });
       console.log('✅ Verification response:', response.data);
 
       // Check if verification was successful
-      if (response.data.success && response.data.emailVerified) {
+      if (response.data.success) {
         setVerified(true);
         setError(null);
         
@@ -71,39 +65,7 @@ const EmailVerification = () => {
           });
         }, 3000);
       } else {
-        // Handle case where backend says success but emailVerified is false
-        console.warn('⚠️ Verification completed but emailVerified status unclear');
-        
-        // Wait and check status again
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        if (response.data.uid) {
-          const statusCheck = await api.post('/auth/check-verification', { 
-            uid: response.data.uid 
-          });
-          
-          console.log('📋 Status check result:', statusCheck.data);
-          
-          if (statusCheck.data.verified) {
-            setVerified(true);
-            setError(null);
-            toast.success('🎉 Email verified successfully!');
-            
-            setTimeout(() => {
-              navigate('/login', { 
-                state: { 
-                  message: 'Email verified! You can now log in.',
-                  verified: true 
-                },
-                replace: true
-              });
-            }, 3000);
-          } else {
-            throw new Error('Verification status could not be confirmed. Please try logging in.');
-          }
-        } else {
-          throw new Error('Verification response incomplete. Please try logging in.');
-        }
+        throw new Error(response.data.message || 'Verification failed');
       }
 
     } catch (error) {

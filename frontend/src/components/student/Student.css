@@ -8,7 +8,7 @@
 }
 
 .dashboard-container h1 {
-  color: #1f2937;
+  color: #0f172a;
   font-size: 2rem;
   margin-bottom: 2rem;
   font-weight: 700;
@@ -35,24 +35,24 @@
 .stat-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-  border-color: #3b82f6;
+  border-color: #17a2b8;
 }
 
 .stat-icon {
-  font-size: 3rem;
-  color: #3b82f6;
-  margin-bottom: 1rem;
+  font-size: 2rem;
+  color: #17a2b8;
+  margin-bottom: 0.5rem;
 }
 
 .stat-number {
   font-size: 2.5rem;
   font-weight: bold;
-  color: #1f2937;
+  color: #0f172a;
   margin: 0.5rem 0;
 }
 
 .stat-text {
-  color: #6b7280;
+  color: #64748b;
   font-size: 0.875rem;
   margin: 0.5rem 0;
 }
@@ -60,14 +60,14 @@
 .stat-link {
   display: inline-block;
   margin-top: 1rem;
-  color: #3b82f6;
+  color: #17a2b8;
   text-decoration: none;
   font-weight: 600;
-  transition: color 0.2s;
+  transition: color 0.3s ease;
 }
 
 .stat-link:hover {
-  color: #2563eb;
+  color: #138496;
   text-decoration: underline;
 }
 
@@ -81,9 +81,9 @@
 }
 
 .quick-actions h2 {
-  color: #1f2937;
+  color: #0f172a;
   margin-bottom: 1.5rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .action-buttons {
@@ -94,7 +94,7 @@
 
 .action-btn {
   padding: 0.75rem 1.5rem;
-  background: #3b82f6;
+  background: #17a2b8;
   color: white;
   text-decoration: none;
   border-radius: 8px;
@@ -108,9 +108,9 @@
 }
 
 .action-btn:hover {
-  background: #2563eb;
+  background: #138496;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.3);
 }
 
 /* Alert Banners */
@@ -129,9 +129,9 @@
 
 .info-banner {
   background: #dbeafe;
-  border: 1px solid #3b82f6;
-  border-left: 4px solid #2563eb;
-  color: #1e40af;
+  border: 1px solid #17a2b8;
+  border-left: 4px solid #138496;
+  color: #17a2b8;
   padding: 1rem 1.5rem;
   border-radius: 8px;
   margin-bottom: 1.5rem;
@@ -197,7 +197,7 @@
 }
 
 .document-card {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
   padding: 2rem;
   border-radius: 12px;
   text-align: center;
@@ -253,7 +253,7 @@
 
 .view-btn:hover {
   background: white;
-  color: #667eea;
+  color: #17a2b8;
   border-color: white;
 }
 
@@ -289,7 +289,7 @@
 }
 
 .upload-card:hover {
-  border-color: #3b82f6;
+  border-color: #17a2b8;
   background: #eff6ff;
   transform: translateY(-3px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
@@ -416,7 +416,7 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #17a2b8;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
@@ -432,7 +432,7 @@
 }
 
 .course-details {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
   color: white;
   padding: 1.5rem;
   border-radius: 12px;
@@ -456,7 +456,7 @@
 .btn-primary {
   width: 100%;
   padding: 1rem;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
   color: white;
   border: none;
   border-radius: 8px;
@@ -501,7 +501,7 @@
   font-size: 0.875rem;
   text-transform: capitalize;
   background: #dbeafe;
-  color: #1e40af;
+  color: #17a2b8;
 }
 
 .profile-tabs {
@@ -525,12 +525,12 @@
 }
 
 .tab-btn:hover {
-  color: #3b82f6;
+  color: #17a2b8;
 }
 
 .tab-btn.active {
-  color: #3b82f6;
-  border-bottom-color: #3b82f6;
+  color: #17a2b8;
+  border-bottom-color: #17a2b8;
 }
 
 .profile-content {
@@ -663,7 +663,7 @@
 }
 
 .application-card.waitlisted {
-  border-color: #3b82f6;
+  border-color: #17a2b8;
 }
 
 .application-card.rejected {
@@ -690,7 +690,7 @@
 
 .status-badge.waitlisted {
   background: #dbeafe;
-  color: #1e40af;
+  color: #17a2b8;
 }
 
 .status-badge.rejected {
@@ -804,7 +804,7 @@
   height: 40px;
   margin: 1rem auto;
   border: 4px solid #f3f4f6;
-  border-top-color: #3b82f6;
+  border-top-color: #17a2b8;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }

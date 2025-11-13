@@ -22,6 +22,18 @@ const Register = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Prevent numbers in firstName and lastName
+    if ((name === 'firstName' || name === 'lastName') && /\d/.test(value)) {
+      // Remove any numbers from the input
+      const filteredValue = value.replace(/\d/g, '');
+      setFormData(prev => ({
+        ...prev,
+        [name]: filteredValue
+      }));
+      return;
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -29,35 +41,81 @@ const Register = () => {
   };
 
   const validateForm = () => {
-    if (formData.password !== formData.confirmPassword) {
-      toast.error('Passwords do not match!');
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      toast.error('Please enter a valid email address!');
       return false;
     }
 
+    // Password strength validation
     if (formData.password.length < 6) {
       toast.error('Password must be at least 6 characters!');
       return false;
     }
 
-    if (!formData.email.includes('@')) {
-      toast.error('Please enter a valid email address!');
+    // Check for password complexity (at least one uppercase, one lowercase, one number)
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/;
+    if (!passwordRegex.test(formData.password)) {
+      toast.error('Password must contain at least one uppercase letter, one lowercase letter, and one number!');
+      return false;
+    }
+
+    // Confirm password match
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match!');
       return false;
     }
 
     // Role-specific validation
-    if (formData.role === 'student' && (!formData.firstName || !formData.lastName)) {
-      toast.error('Please enter your first and last name!');
-      return false;
+    if (formData.role === 'student') {
+      if (!formData.firstName || formData.firstName.trim() === '') {
+        toast.error('Please enter your first name!');
+        return false;
+      }
+      if (!formData.lastName || formData.lastName.trim() === '') {
+        toast.error('Please enter your last name!');
+        return false;
+      }
+      if (formData.firstName.length < 2) {
+        toast.error('First name must be at least 2 characters!');
+        return false;
+      }
+      if (formData.lastName.length < 2) {
+        toast.error('Last name must be at least 2 characters!');
+        return false;
+      }
     }
 
-    if (formData.role === 'company' && !formData.companyName) {
-      toast.error('Please enter your company name!');
-      return false;
+    if (formData.role === 'company') {
+      if (!formData.companyName || formData.companyName.trim() === '') {
+        toast.error('Please enter your company name!');
+        return false;
+      }
+      if (formData.companyName.length < 2) {
+        toast.error('Company name must be at least 2 characters!');
+        return false;
+      }
     }
 
-    if (formData.role === 'institute' && !formData.institutionName) {
-      toast.error('Please enter your institution name!');
-      return false;
+    if (formData.role === 'institute') {
+      if (!formData.institutionName || formData.institutionName.trim() === '') {
+        toast.error('Please enter your institution name!');
+        return false;
+      }
+      if (formData.institutionName.length < 2) {
+        toast.error('Institution name must be at least 2 characters!');
+        return false;
+      }
+    }
+
+    // Phone validation if provided
+    if (formData.phone) {
+      const phoneRegex = /^[+]?[(]?[0-9]{3}[)]?[-\s.]?[0-9]{3}[-\s.]?[0-9]{4,6}$/;
+      if (!phoneRegex.test(formData.phone.replace(/\s/g, ''))) {
+        toast.error('Please enter a valid phone number!');
+        return false;
+      }
     }
 
     return true;

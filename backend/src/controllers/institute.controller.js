@@ -506,37 +506,7 @@ exports.getMyAdmissions = async (req, res) => {
 
     const admissions = [];
 
-    for (const doc of admissionsSnapshot.docs) {
-      const admissionData = doc.data();
-      
-      // Get course details
-      const courseDoc = await db.collection('courses').doc(admissionData.courseId).get();
-
-      admissions.push({
-        id: doc.id,
-        ...admissionData,
-        course: courseDoc.exists ? courseDoc.data() : null
-      });
-    }
-
-    res.json(admissions);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-// backend/src/controllers/institute.controller.js - Fix for getMyAdmissions
-// Add this to the end of the file, replacing the existing getMyAdmissions function
-
-exports.getMyAdmissions = async (req, res) => {
-  try {
-    const snapshot = await db.collection('admissions')
-      .where('institutionId', '==', req.user.uid)
-      .orderBy('publishedAt', 'desc')
-      .get();
-
-    const admissions = [];
-
-    for (const doc of snapshot.docs) {  // Changed from admissionsSnapshot to snapshot
+    for (const doc of snapshot.docs) {
       const admissionData = doc.data();
       
       // Get course details

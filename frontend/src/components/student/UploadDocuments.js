@@ -131,7 +131,7 @@ const UploadDocuments = () => {
       }, 500);
 
       // Upload to backend
-      const response = await fetch(`${API_URL}/api/upload/student/documents`, {
+      const response = await fetch(`${API_URL}upload/student/documents`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

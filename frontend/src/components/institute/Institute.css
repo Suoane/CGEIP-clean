@@ -7,9 +7,10 @@
 }
 
 .dashboard-container h1 {
-  color: #1f2937;
+  color: #0f172a;
   font-size: 2rem;
   margin-bottom: 2rem;
+  font-weight: 700;
 }
 
 .stats-grid {
@@ -34,32 +35,34 @@
 }
 
 .stat-icon {
-  font-size: 3rem;
-  color: #3b82f6;
-  margin-bottom: 1rem;
+  font-size: 2rem;
+  color: #17a2b8;
+  margin-bottom: 0.5rem;
 }
 
 .stat-number {
   font-size: 2.5rem;
   font-weight: bold;
-  color: #1f2937;
+  color: #0f172a;
   margin: 0.5rem 0;
 }
 
 .stat-text {
-  color: #6b7280;
+  color: #64748b;
   font-size: 0.875rem;
 }
 
 .stat-link {
   display: inline-block;
   margin-top: 1rem;
-  color: #3b82f6;
+  color: #17a2b8;
   text-decoration: none;
   font-weight: 600;
+  transition: all 0.3s ease;
 }
 
 .stat-link:hover {
+  color: #138496;
   text-decoration: underline;
 }
 
@@ -72,8 +75,9 @@
 }
 
 .quick-actions h2 {
-  color: #1f2937;
+  color: #0f172a;
   margin-bottom: 1.5rem;
+  font-weight: 700;
 }
 
 .action-buttons {
@@ -84,16 +88,20 @@
 
 .action-btn {
   padding: 0.75rem 1.5rem;
-  background: #3b82f6;
+  background: #17a2b8;
   color: white;
   text-decoration: none;
   border-radius: 8px;
   font-weight: 600;
-  transition: background 0.2s;
+  transition: all 0.3s ease;
+  border: none;
+  cursor: pointer;
 }
 
 .action-btn:hover {
-  background: #2563eb;
+  background: #138496;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(25, 118, 210, 0.4);
 }
 
 .alert-banner {

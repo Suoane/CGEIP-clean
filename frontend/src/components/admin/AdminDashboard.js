@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { FaUniversity, FaUsers, FaBriefcase, FaFileAlt } from 'react-icons/fa';
 import './Admin.css';
 
 const AdminDashboard = () => {
@@ -65,21 +64,18 @@ const AdminDashboard = () => {
       
       <div className="stats-grid">
         <div className="stat-card">
-          <FaUniversity className="stat-icon" />
           <h3>Institutions</h3>
           <p className="stat-number">{stats.institutions}</p>
           <Link to="/admin/institutions" className="stat-link">Manage Institutions</Link>
         </div>
 
         <div className="stat-card">
-          <FaUsers className="stat-icon" />
           <h3>Students</h3>
           <p className="stat-number">{stats.students}</p>
           <span className="stat-text">Registered Students</span>
         </div>
 
         <div className="stat-card">
-          <FaBriefcase className="stat-icon" />
           <h3>Companies</h3>
           <p className="stat-number">{stats.companies}</p>
           <p className="stat-text">
@@ -89,7 +85,6 @@ const AdminDashboard = () => {
         </div>
 
         <div className="stat-card">
-          <FaFileAlt className="stat-icon" />
           <h3>Applications</h3>
           <p className="stat-number">{stats.applications}</p>
           <span className="stat-text">Total Applications</span>
@@ -119,7 +114,7 @@ const AdminDashboard = () => {
 
       {stats.pendingCompanies > 0 && (
         <div className="alert-banner">
-          <p>⚠️ You have {stats.pendingCompanies} companies pending approval</p>
+          <p>You have {stats.pendingCompanies} companies pending approval</p>
         </div>
       )}
     </div>

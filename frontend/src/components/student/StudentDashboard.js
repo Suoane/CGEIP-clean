@@ -1,14 +1,11 @@
-// frontend/src/components/student/StudentDashboard.js - ENHANCED VERSION
+// frontend/src/components/student/StudentDashboard.js
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { FaGraduationCap, FaFileAlt, FaBriefcase, FaUser, FaCheckCircle, FaExclamationTriangle, FaUpload } from 'react-icons/fa';
 import './Student.css';
-<Link to="/student/matches" className="action-btn">
-  🎯 View My Matches
-</Link>
+
 const StudentDashboard = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -107,7 +104,7 @@ const StudentDashboard = () => {
   return (
     <div className="dashboard-container">
       <div className="dashboard-welcome">
-        <h1>👋 Welcome back, {studentData?.personalInfo?.firstName || 'Student'}!</h1>
+        <h1>Welcome back, {studentData?.personalInfo?.firstName || 'Student'}!</h1>
         <p className="dashboard-subtitle">Track your academic journey and opportunities</p>
       </div>
       
@@ -115,7 +112,6 @@ const StudentDashboard = () => {
       <div className="alerts-section">
         {!profileComplete && (
           <div className="alert-banner">
-            <FaExclamationTriangle />
             <div>
               <strong>Complete Your Profile</strong>
               <p>Please complete your profile information to start applying for courses.</p>
@@ -128,7 +124,6 @@ const StudentDashboard = () => {
         
         {profileComplete && !documentsUploaded && (
           <div className="alert-banner">
-            <FaUpload />
             <div>
               <strong>Upload Required Documents</strong>
               <p>Upload your documents to complete your application profile.</p>
@@ -141,9 +136,8 @@ const StudentDashboard = () => {
 
         {stats.admissions > 0 && !studentData?.admittedInstitution && (
           <div className="info-banner">
-            <FaCheckCircle />
             <div>
-              <strong>🎉 Congratulations!</strong>
+              <strong>Congratulations!</strong>
               <p>You have {stats.admissions} admission offer(s). Select an institution to proceed.</p>
               <Link to="/student/admissions" style={{ color: '#1e40af', fontWeight: 'bold', textDecoration: 'underline' }}>
                 View Admissions →
@@ -156,7 +150,6 @@ const StudentDashboard = () => {
       {/* Stats Grid */}
       <div className="stats-grid">
         <div className="stat-card" style={{ borderTop: '4px solid #3b82f6' }}>
-          <FaFileAlt className="stat-icon" />
           <h3>Applications</h3>
           <p className="stat-number">{stats.applications}</p>
           <p className="stat-text">
@@ -183,7 +176,6 @@ const StudentDashboard = () => {
         </div>
 
         <div className="stat-card" style={{ borderTop: '4px solid #10b981' }}>
-          <FaGraduationCap className="stat-icon" style={{ color: '#10b981' }} />
           <h3>Admissions</h3>
           <p className="stat-number">{stats.admissions}</p>
           <p className="stat-text">
@@ -195,7 +187,6 @@ const StudentDashboard = () => {
         </div>
 
         <div className="stat-card" style={{ borderTop: '4px solid #f59e0b' }}>
-          <FaBriefcase className="stat-icon" style={{ color: '#f59e0b' }} />
           <h3>Study Status</h3>
           <p className="stat-number" style={{ fontSize: '1.5rem', textTransform: 'capitalize' }}>
             {stats.studyStatus}
@@ -204,20 +195,19 @@ const StudentDashboard = () => {
             {stats.studyStatus === 'completed' ? `${stats.jobMatches} job matches` : 'Current status'}
           </p>
           {stats.studyStatus === 'completed' && (
-            <a href="#jobs" className="stat-link">
+            <Link to="/student/matches" className="stat-link">
               Browse Jobs →
-            </a>
+            </Link>
           )}
         </div>
 
         <div className="stat-card" style={{ borderTop: '4px solid #8b5cf6' }}>
-          <FaUser className="stat-icon" style={{ color: '#8b5cf6' }} />
           <h3>Profile</h3>
           <p className="stat-text" style={{ marginTop: '1rem' }}>
-            {profileComplete ? '✅ Profile Complete' : '⚠️ Incomplete'}
+            {profileComplete ? 'Profile Complete' : 'Profile Incomplete'}
           </p>
           <p className="stat-text">
-            {documentsUploaded ? '✅ Documents Uploaded' : '⚠️ Documents Missing'}
+            {documentsUploaded ? 'Documents Uploaded' : 'Documents Missing'}
           </p>
           <Link to="/student/profile" className="stat-link">
             Manage Profile →
@@ -227,28 +217,37 @@ const StudentDashboard = () => {
 
       {/* Quick Actions */}
       <div className="quick-actions">
-        <h2>🚀 Quick Actions</h2>
+        <h2>Quick Actions</h2>
         <div className="action-buttons">
           {!profileComplete && (
             <Link to="/student/profile" className="action-btn" style={{ background: '#ef4444' }}>
-              <FaUser /> Complete Profile
+              Complete Profile
             </Link>
           )}
           {profileComplete && !documentsUploaded && (
             <Link to="/student/upload-documents" className="action-btn" style={{ background: '#f59e0b' }}>
-              <FaUpload /> Upload Documents
+              Upload Documents
             </Link>
           )}
           {canApply && (
             <Link to="/student/apply-course" className="action-btn">
-              <FaFileAlt /> Apply for Course
+              Apply for Course
             </Link>
           )}
+          <Link to="/student/view-courses" className="action-btn">
+            View Matching Courses
+          </Link>
+          <Link to="/student/enter-results" className="action-btn">
+            Enter Your Results
+          </Link>
           <Link to="/student/admissions" className="action-btn">
-            <FaGraduationCap /> Check Admissions
+            Check Admissions
           </Link>
           <Link to="/student/profile" className="action-btn">
-            <FaUser /> View Profile
+            View Profile
+          </Link>
+          <Link to="/student/matches" className="action-btn">
+            View My Matches
           </Link>
         </div>
       </div>
@@ -261,7 +260,7 @@ const StudentDashboard = () => {
         boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
         marginTop: '2rem'
       }}>
-        <h2 style={{ marginBottom: '1.5rem' }}>📊 Your Progress</h2>
+        <h2 style={{ marginBottom: '1.5rem' }}>Your Progress</h2>
         <div style={{ display: 'grid', gap: '1rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span style={{ minWidth: '200px', fontWeight: '600' }}>Profile Completion:</span>

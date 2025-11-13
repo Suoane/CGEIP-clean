@@ -1,7 +1,8 @@
-// backend/src/routes/auth.routes.js - COMPLETE VERSION
+// backend/src/routes/auth.routes.js - FIXED VERSION
 const express = require('express');
 const router = express.Router();
 const { auth, db } = require('../config/firebase');
+const { verifyToken } = require('../middleware/auth');
 const emailService = require('../services/email.service');
 const crypto = require('crypto');
 
@@ -93,6 +94,72 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// Login endpoint (ADD THIS IF IT'S MISSING)
+router.post('/login', async (req, res) => {
+  try {
+    const { uid } = req.body;
+
+    if (!uid) {
+      return res.status(400).json({
+        success: false,
+        message: 'UID is required'
+      });
+    }
+
+    // Get user from Firestore
+    const userDoc = await db.collection('users').doc(uid).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const userData = userDoc.data();
+
+    // Check if email is verified
+    if (!userData.emailVerified) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email before logging in',
+        emailVerified: false
+      });
+    }
+
+    // Get role-specific data
+    let roleData = null;
+    if (userData.role === 'student') {
+      const studentDoc = await db.collection('students').doc(uid).get();
+      roleData = studentDoc.exists ? studentDoc.data() : null;
+    } else if (userData.role === 'company') {
+      const companyDoc = await db.collection('companies').doc(uid).get();
+      roleData = companyDoc.exists ? companyDoc.data() : null;
+    } else if (userData.role === 'institute') {
+      const instituteDoc = await db.collection('institutions').doc(uid).get();
+      roleData = instituteDoc.exists ? instituteDoc.data() : null;
+    }
+
+    res.status(200).json({
+      success: true,
+      user: {
+        uid: userData.uid,
+        email: userData.email,
+        role: userData.role,
+        emailVerified: userData.emailVerified,
+        ...roleData
+      }
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Login failed'
+    });
+  }
+});
+
 // Verify email
 router.post('/verify-email', async (req, res) => {
   try {
@@ -175,12 +242,72 @@ router.post('/verify-email', async (req, res) => {
   }
 });
 
-// Check verification status (NEWLY ADDED ROUTE)
+// Check verification status - GET endpoint (for frontend with auth token)
+router.get('/check-verification', verifyToken, async (req, res) => {
+  try {
+    const uid = req.user.uid;
+
+    console.log('🔍 GET - Checking verification status for UID:', uid);
+
+    // Get user from Firestore
+    const userDoc = await db.collection('users').doc(uid).get();
+
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const userData = userDoc.data();
+
+    // If email is NOT verified in Firestore, check Firebase Auth
+    if (!userData.emailVerified) {
+      try {
+        const authUser = await auth.getUser(uid);
+        
+        // If verified in Auth but not in Firestore, sync it
+        if (authUser.emailVerified) {
+          console.log('✅ Syncing verification status from Firebase Auth to Firestore');
+          
+          await db.collection('users').doc(uid).update({
+            emailVerified: true,
+            updatedAt: new Date()
+          });
+
+          return res.status(200).json({
+            success: true,
+            emailVerified: true,
+            synced: true,
+            email: userData.email
+          });
+        }
+      } catch (authError) {
+        console.error('Error fetching Firebase Auth user:', authError);
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      emailVerified: userData.emailVerified || false,
+      email: userData.email
+    });
+
+  } catch (error) {
+    console.error('❌ GET Check verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to check verification status'
+    });
+  }
+});
+
+// Check verification status - POST endpoint (for internal use)
 router.post('/check-verification', async (req, res) => {
   try {
     const { uid } = req.body;
 
-    console.log('🔍 Checking verification status for UID:', uid);
+    console.log('🔍 POST - Checking verification status for UID:', uid);
 
     if (!uid) {
       return res.status(400).json({
@@ -236,7 +363,7 @@ router.post('/check-verification', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Check verification error:', error);
+    console.error('❌ POST Check verification error:', error);
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to check verification status'

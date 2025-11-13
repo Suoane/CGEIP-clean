@@ -15,13 +15,14 @@
 }
 
 .page-header h1 {
-  color: #1f2937;
+  color: #0f172a;
   font-size: 2.5rem;
   margin-bottom: 0.5rem;
+  font-weight: 700;
 }
 
 .page-header p {
-  color: #6b7280;
+  color: #64748b;
   font-size: 1.125rem;
 }
 
@@ -44,9 +45,10 @@
 }
 
 .jobs-sidebar h3 {
-  color: #1f2937;
+  color: #0f172a;
   margin-bottom: 1rem;
   font-size: 1.25rem;
+  font-weight: 700;
 }
 
 .job-item {
@@ -60,25 +62,26 @@
 }
 
 .job-item:hover {
-  border-color: #3b82f6;
+  border-color: #17a2b8;
   background: #eff6ff;
   transform: translateX(4px);
 }
 
 .job-item.active {
-  border-color: #3b82f6;
+  border-color: #17a2b8;
   background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.2);
 }
 
 .job-item h4 {
-  color: #1f2937;
+  color: #0f172a;
   margin: 0 0 0.75rem 0;
   font-size: 1.125rem;
+  font-weight: 700;
 }
 
 .job-item .job-location {
-  color: #6b7280;
+  color: #64748b;
   font-size: 0.875rem;
   margin-bottom: 0.75rem;
 }
@@ -92,7 +95,7 @@
 
 .job-stats .stat {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #64748b;
   padding: 0.25rem 0.5rem;
   background: #f3f4f6;
   border-radius: 4px;
@@ -119,9 +122,10 @@
 }
 
 .job-info h2 {
-  color: #1f2937;
+  color: #0f172a;
   margin: 0 0 1rem 0;
   font-size: 1.875rem;
+  font-weight: 700;
 }
 
 .job-metrics {
@@ -135,7 +139,7 @@
   background: #f3f4f6;
   border-radius: 8px;
   font-size: 0.875rem;
-  color: #374151;
+  color: #1e293b;
   font-weight: 600;
 }
 
@@ -163,7 +167,7 @@
 }
 
 .filter-group label {
-  color: #374151;
+  color: #1e293b;
   font-weight: 600;
   font-size: 0.875rem;
 }
@@ -171,7 +175,7 @@
 .filter-group select,
 .filter-group input[type="range"] {
   padding: 0.5rem 1rem;
-  border: 2px solid #d1d5db;
+  border: 2px solid #cbd5e1;
   border-radius: 8px;
   font-size: 0.875rem;
   background: white;
@@ -180,7 +184,7 @@
 
 .filter-group select:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #17a2b8;
 }
 
 .filter-group input[type="range"] {
@@ -189,7 +193,7 @@
 
 .score-value {
   padding: 0.25rem 0.75rem;
-  background: #3b82f6;
+  background: #17a2b8;
   color: white;
   border-radius: 6px;
   font-weight: 600;
@@ -221,15 +225,15 @@
   left: 0;
   right: 0;
   height: 4px;
-  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  background: linear-gradient(90deg, #17a2b8, #138496);
   transform: scaleX(0);
   transform-origin: left;
   transition: transform 0.3s ease;
 }
 
 .applicant-card-smart:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.2);
+  border-color: #17a2b8;
+  box-shadow: 0 8px 24px rgba(23, 162, 184, 0.2);
   transform: translateY(-4px);
 }
 
@@ -255,7 +259,7 @@
 .match-score-large {
   font-size: 3rem;
   font-weight: 800;
-  color: #1f2937;
+  color: #0f172a;
   line-height: 1;
   margin: 0.5rem 0;
 }
@@ -273,9 +277,10 @@
 }
 
 .applicant-info-section h3 {
-  color: #1f2937;
+  color: #0f172a;
   font-size: 1.25rem;
   margin: 0 0 1rem 0;
+  font-weight: 700;
 }
 
 .quick-stats {
@@ -286,11 +291,11 @@
 
 .quick-stats .stat {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: #64748b;
   padding: 0.5rem;
   background: #f9fafb;
   border-radius: 6px;
-  border-left: 3px solid #3b82f6;
+  border-left: 3px solid #17a2b8;
 }
 
 /* Score Breakdown */
@@ -302,11 +307,12 @@
 }
 
 .score-breakdown h4 {
-  color: #374151;
+  color: #1e293b;
   font-size: 0.875rem;
   margin: 0 0 1rem 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 700;
 }
 
 .score-bars {
@@ -324,7 +330,7 @@
 
 .score-label {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #64748b;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -345,7 +351,7 @@
 .score-number {
   font-size: 0.75rem;
   font-weight: 700;
-  color: #374151;
+  color: #1e293b;
   text-align: right;
 }
 
@@ -355,9 +361,10 @@
 }
 
 .strengths-section h4 {
-  color: #374151;
+  color: #1e293b;
   font-size: 0.875rem;
   margin: 0 0 0.75rem 0;
+  font-weight: 700;
 }
 
 .tags {
@@ -403,24 +410,24 @@
 }
 
 .card-actions .btn-primary {
-  background: #3b82f6;
+  background: #17a2b8;
   color: white;
 }
 
 .card-actions .btn-primary:hover {
-  background: #2563eb;
+  background: #138496;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
 }
 
 .card-actions .btn-interview {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, #388e3c 0%, #2e7d32 100%);
   color: white;
 }
 
 .card-actions .btn-interview:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(56, 142, 60, 0.3);
 }
 
 /* Card Footer */
@@ -434,7 +441,7 @@
 
 .footer-item {
   font-size: 0.75rem;
-  color: #6b7280;
+  color: #64748b;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -458,7 +465,7 @@
 
 .status-badge.closed {
   background: #f3f4f6;
-  color: #6b7280;
+  color: #64748b;
 }
 
 .status-badge.pending {
@@ -477,7 +484,7 @@
 .no-applicants button {
   margin-top: 1rem;
   padding: 0.75rem 2rem;
-  background: #3b82f6;
+  background: #17a2b8;
   color: white;
   border: none;
   border-radius: 8px;
@@ -487,9 +494,9 @@
 }
 
 .no-applicants button:hover {
-  background: #2563eb;
+  background: #138496;
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
 }
 
 .no-data-container {
@@ -501,19 +508,20 @@
 }
 
 .no-data-container h2 {
-  color: #1f2937;
+  color: #0f172a;
   margin-bottom: 1rem;
+  font-weight: 700;
 }
 
 .no-data-container p {
-  color: #6b7280;
+  color: #64748b;
   margin-bottom: 2rem;
   font-size: 1.125rem;
 }
 
 .no-data-container button {
   padding: 1rem 2rem;
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);
   color: white;
   border: none;
   border-radius: 12px;
@@ -525,7 +533,7 @@
 
 .no-data-container button:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.4);
+  box-shadow: 0 8px 24px rgba(23, 162, 184, 0.4);
 }
 
 /* Responsive Design */

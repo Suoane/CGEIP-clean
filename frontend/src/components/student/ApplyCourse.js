@@ -17,6 +17,7 @@ const ApplyCourse = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [showCourseModal, setShowCourseModal] = useState(false);
   const [applicationLimit, setApplicationLimit] = useState({ count: 0, limit: 2 });
+  const [activeTab, setActiveTab] = useState('recommended'); // 'recommended' or 'all'
 
   useEffect(() => {
     fetchStudentData();
@@ -162,7 +163,84 @@ const ApplyCourse = () => {
       }
     }
 
-    // 4. Check course-specific requirements
+    // 4. Check required results (exam scores and GPA)
+    if (course.requiredResults) {
+      const studentResults = student.results || {};
+      let resultsScore = 0;
+      let meetsAllResults = true;
+
+      // Check Mathematics score
+      if (course.requiredResults.minMathScore) {
+        const minMath = parseFloat(course.requiredResults.minMathScore);
+        const studentMath = parseFloat(studentResults.mathScore) || 0;
+        
+        if (studentMath < minMath) {
+          isEligible = false;
+          meetsAllResults = false;
+          eligibilityReasons.push(`Math score required: minimum ${minMath}`);
+          weaknesses.push(`Math score too low (required: ${minMath}, yours: ${studentMath})`);
+        } else {
+          resultsScore += 10;
+          strengths.push(`Strong mathematics score (${studentMath})`);
+        }
+      }
+
+      // Check English score
+      if (course.requiredResults.minEnglishScore) {
+        const minEnglish = parseFloat(course.requiredResults.minEnglishScore);
+        const studentEnglish = parseFloat(studentResults.englishScore) || 0;
+        
+        if (studentEnglish < minEnglish) {
+          isEligible = false;
+          meetsAllResults = false;
+          eligibilityReasons.push(`English score required: minimum ${minEnglish}`);
+          weaknesses.push(`English score too low (required: ${minEnglish}, yours: ${studentEnglish})`);
+        } else {
+          resultsScore += 10;
+          strengths.push(`Strong English score (${studentEnglish})`);
+        }
+      }
+
+      // Check GPA
+      if (course.requiredResults.minGPA) {
+        const minGPA = parseFloat(course.requiredResults.minGPA);
+        const studentGPA = parseFloat(studentResults.gpa) || 0;
+        
+        if (studentGPA < minGPA) {
+          isEligible = false;
+          meetsAllResults = false;
+          eligibilityReasons.push(`GPA required: minimum ${minGPA}`);
+          weaknesses.push(`GPA below requirement (required: ${minGPA}, yours: ${studentGPA})`);
+        } else {
+          resultsScore += 10;
+          strengths.push(`GPA meets requirement (${studentGPA})`);
+        }
+      }
+
+      // Check Field of Study
+      if (course.requiredResults.requiredFieldOfStudy && course.requiredResults.requiredFieldOfStudy !== '') {
+        const requiredField = course.requiredResults.requiredFieldOfStudy;
+        const studentField = studentResults.fieldOfStudy || '';
+        
+        if (studentField !== requiredField) {
+          eligibilityReasons.push(`Field of Study: ${requiredField} preferred`);
+          weaknesses.push(`Your field (${studentField}) differs from preferred field (${requiredField})`);
+        } else {
+          resultsScore += 5;
+          strengths.push(`Field of study matches (${studentField})`);
+        }
+      }
+
+      if (meetsAllResults) {
+        matchScore += resultsScore;
+      }
+    } else if (!student.results || !student.resultsSubmitted) {
+      // If course doesn't have specific requirements, still encourage results submission
+      eligibilityReasons.push('Submit your exam results to improve matching');
+      weaknesses.push('Submit your exam results');
+    }
+
+    // 4b. Check course-specific requirements
     if (course.requirements) {
       // Level matching
       if (course.level) {
@@ -376,8 +454,50 @@ const ApplyCourse = () => {
   return (
     <div className="apply-course-container">
       <div className="page-header">
-        <h1>🎓 Recommended Courses for You</h1>
-        <p>Based on your qualifications and documents</p>
+        <h1>Apply for Courses</h1>
+        <p>Browse and apply to available courses</p>
+      </div>
+
+      {/* Tabs */}
+      <div style={{
+        display: 'flex',
+        gap: '1rem',
+        marginBottom: '2rem',
+        borderBottom: '2px solid #e5e7eb',
+        paddingBottom: '1rem'
+      }}>
+        <button
+          onClick={() => setActiveTab('recommended')}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: activeTab === 'recommended' ? '#3b82f6' : 'transparent',
+            color: activeTab === 'recommended' ? 'white' : '#666',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '1rem',
+            transition: 'all 0.3s'
+          }}
+        >
+          Recommended for You ({qualifiedCourses.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('all')}
+          style={{
+            padding: '0.75rem 1.5rem',
+            background: activeTab === 'all' ? '#3b82f6' : 'transparent',
+            color: activeTab === 'all' ? 'white' : '#666',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '600',
+            fontSize: '1rem',
+            transition: 'all 0.3s'
+          }}
+        >
+          All Courses ({allCourses.length})
+        </button>
       </div>
 
       {/* Application Status */}
@@ -394,7 +514,7 @@ const ApplyCourse = () => {
         <div className="alert-banner">
           <FaExclamationTriangle />
           <div>
-            <strong>⚠️ Missing Required Documents</strong>
+            <strong>Missing Required Documents</strong>
             <p>You need to upload your Transcript and ID Card to apply for courses.</p>
             <a href="/student/upload-documents" style={{ color: '#92400e', fontWeight: 'bold', textDecoration: 'underline' }}>
               Upload Documents Now →
@@ -408,7 +528,7 @@ const ApplyCourse = () => {
         <div className="alert-banner">
           <FaExclamationTriangle />
           <div>
-            <strong>⚠️ Incomplete Profile</strong>
+            <strong>Incomplete Profile</strong>
             <p>Complete your profile to see more course recommendations.</p>
             <a href="/student/profile" style={{ color: '#92400e', fontWeight: 'bold', textDecoration: 'underline' }}>
               Complete Profile →
@@ -417,60 +537,62 @@ const ApplyCourse = () => {
         </div>
       )}
 
-      {/* Qualified Courses */}
-      {qualifiedCourses.length > 0 ? (
-        <div className="courses-section">
-          <h2>✨ {qualifiedCourses.length} Courses You Qualify For</h2>
-          
-          <div className="courses-grid" style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', 
-            gap: '1.5rem',
-            marginTop: '1.5rem'
-          }}>
-            {qualifiedCourses.map(course => {
-              const rec = course.recommendation;
-              return (
-                <div key={course.id} className="course-card" style={{
-                  background: 'white',
-                  borderRadius: '12px',
-                  padding: '1.5rem',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                  border: `2px solid ${rec.color}20`,
-                  transition: 'all 0.3s ease'
-                }}>
-                  {/* Match Score Badge */}
-                  <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
-                    alignItems: 'center',
-                    marginBottom: '1rem'
-                  }}>
-                    <div style={{
-                      padding: '0.5rem 1rem',
-                      background: `${rec.color}15`,
-                      color: rec.color,
-                      borderRadius: '20px',
-                      fontWeight: '700',
-                      fontSize: '0.875rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem'
-                    }}>
-                      <span>{rec.icon}</span>
-                      <span>{course.matchScore}% Match</span>
-                    </div>
-                    <div style={{
-                      padding: '0.25rem 0.75rem',
-                      background: '#f3f4f6',
+      {/* Recommended Courses Tab */}
+      {activeTab === 'recommended' && (
+        <>
+          {qualifiedCourses.length > 0 ? (
+            <div className="courses-section">
+              <h2>{qualifiedCourses.length} Courses You Qualify For</h2>
+              
+              <div className="courses-grid" style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', 
+                gap: '1.5rem',
+                marginTop: '1.5rem'
+              }}>
+                {qualifiedCourses.map(course => {
+                  const rec = course.recommendation;
+                  return (
+                    <div key={course.id} className="course-card" style={{
+                      background: 'white',
                       borderRadius: '12px',
-                      fontSize: '0.75rem',
-                      fontWeight: '600',
-                      color: '#6b7280'
+                      padding: '1.5rem',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                      border: `2px solid ${rec.color}20`,
+                      transition: 'all 0.3s ease'
                     }}>
-                      {rec.level}
-                    </div>
-                  </div>
+                      {/* Match Score Badge */}
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: '1rem'
+                      }}>
+                        <div style={{
+                          padding: '0.5rem 1rem',
+                          background: `${rec.color}15`,
+                          color: rec.color,
+                          borderRadius: '20px',
+                          fontWeight: '700',
+                          fontSize: '0.875rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem'
+                        }}>
+                          <span>{rec.icon}</span>
+                          <span>{course.matchScore}% Match</span>
+                        </div>
+                        <div style={{
+                          padding: '0.25rem 0.75rem',
+                          background: '#f3f4f6',
+                          borderRadius: '12px',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          color: '#6b7280'
+                        }}>
+                          {rec.level}
+                        </div>
+                      </div>
 
                   {/* Course Info */}
                   <h3 style={{ 
@@ -589,6 +711,151 @@ const ApplyCourse = () => {
           </div>
         </div>
       )}
+      </>
+      )}
+
+      {/* All Courses Tab */}
+      {activeTab === 'all' && (
+        <>
+          {allCourses.length > 0 ? (
+            <div className="courses-section">
+              <h2>All Available Courses ({allCourses.length})</h2>
+              
+              <div className="courses-grid" style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', 
+                gap: '1.5rem',
+                marginTop: '1.5rem'
+              }}>
+                {allCourses.map(course => (
+                  <div key={course.id} className="course-card" style={{
+                    background: 'white',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    border: '2px solid #e5e7eb',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <div style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      marginBottom: '1rem'
+                    }}>
+                      <div style={{
+                        padding: '0.25rem 0.75rem',
+                        background: '#f3f4f6',
+                        borderRadius: '12px',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        color: '#6b7280'
+                      }}>
+                        {course.level}
+                      </div>
+                    </div>
+
+                    <h3 style={{ 
+                      color: '#1f2937', 
+                      margin: '0 0 0.5rem 0',
+                      fontSize: '1.125rem'
+                    }}>
+                      {course.courseName}
+                    </h3>
+                    <p style={{ 
+                      color: '#6b7280', 
+                      margin: '0 0 1rem 0',
+                      fontSize: '0.875rem'
+                    }}>
+                      {course.courseCode} • {course.duration}
+                    </p>
+
+                    <div style={{
+                      padding: '0.75rem',
+                      background: '#f9fafb',
+                      borderRadius: '8px',
+                      marginBottom: '1rem'
+                    }}>
+                      <p style={{ margin: 0, fontSize: '0.875rem', color: '#6b7280' }}>
+                        {course.institution?.name || 'Unknown Institution'}
+                      </p>
+                    </div>
+
+                    {course.description && (
+                      <p style={{ 
+                        fontSize: '0.875rem', 
+                        color: '#6b7280', 
+                        margin: '0 0 1rem 0',
+                        lineHeight: '1.5'
+                      }}>
+                        {course.description.substring(0, 100)}...
+                      </p>
+                    )}
+
+                    <button
+                      onClick={() => {
+                        setSelectedCourse(course);
+                        setShowCourseModal(true);
+                      }}
+                      disabled={!canApply}
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem',
+                        background: canApply ? '#3b82f6' : '#d1d5db',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: canApply ? 'pointer' : 'not-allowed',
+                        fontWeight: '600',
+                        fontSize: '0.9rem',
+                        transition: 'background 0.3s'
+                      }}
+                    >
+                      {canApply ? 'Apply Now' : 'Application Limit Reached'}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div style={{
+              padding: '3rem 2rem',
+              textAlign: 'center',
+              background: '#f9fafb',
+              borderRadius: '12px',
+              color: '#1f2937'
+            }}>
+              <h2 style={{ color: '#1f2937', marginBottom: '1rem' }}>No Courses Available</h2>
+              <p style={{ color: '#6b7280' }}>
+                There are currently no open courses. Please check back later.
+              </p>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* No content for empty state */}
+      {allCourses.length === 0 && qualifiedCourses.length === 0 && (
+        <div style={{
+          padding: '3rem 2rem',
+          textAlign: 'center',
+          background: '#f9fafb',
+          borderRadius: '12px',
+          color: '#1f2937'
+        }}>
+          <h2 style={{ color: '#1f2937', marginBottom: '1rem' }}>No Matching Courses Found</h2>
+          <p style={{ color: '#6b7280', marginBottom: '1.5rem' }}>
+            Complete your profile and upload documents to see course recommendations.
+          </p>
+          <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <a href="/student/profile" className="action-btn">
+              Complete Profile
+            </a>
+            <a href="/student/upload-documents" className="action-btn">
+              Upload Documents
+            </a>
+          </div>
+        </div>
+      )}
 
       {/* Confirmation Modal */}
       {showCourseModal && selectedCourse && (
@@ -604,21 +871,18 @@ const ApplyCourse = () => {
             <div style={{ padding: '1.5rem' }}>
               <div style={{
                 padding: '1rem',
-                background: `${selectedCourse.recommendation.color}15`,
+                background: `#dbeafe`,
                 borderRadius: '8px',
                 marginBottom: '1.5rem',
                 textAlign: 'center'
               }}>
                 <p style={{ 
-                  fontSize: '2rem', 
+                  fontSize: '1.5rem', 
                   fontWeight: '700',
-                  color: selectedCourse.recommendation.color,
+                  color: '#1e40af',
                   margin: 0
                 }}>
-                  {selectedCourse.matchScore}% Match
-                </p>
-                <p style={{ margin: '0.5rem 0 0 0', color: '#6b7280', fontSize: '0.875rem' }}>
-                  {selectedCourse.recommendation.level}
+                  Apply for Course
                 </p>
               </div>
 
@@ -636,12 +900,12 @@ const ApplyCourse = () => {
                 marginBottom: '1rem'
               }}>
                 <p style={{ margin: '0 0 0.5rem 0', fontWeight: '600', color: '#374151' }}>
-                  📋 Application Details:
+                  Application Details:
                 </p>
                 <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#6b7280', fontSize: '0.875rem' }}>
                   <li>Duration: {selectedCourse.duration}</li>
                   <li>Level: {selectedCourse.level}</li>
-                  <li>Location: {selectedCourse.institution?.location}</li>
+                  <li>Location: {selectedCourse.institution?.location || 'N/A'}</li>
                 </ul>
               </div>
 
@@ -664,7 +928,7 @@ const ApplyCourse = () => {
                 className="btn-primary"
                 disabled={applying}
               >
-                {applying ? 'Submitting...' : '✓ Confirm Application'}
+                {applying ? 'Submitting...' : 'Confirm Application'}
               </button>
             </div>
           </div>

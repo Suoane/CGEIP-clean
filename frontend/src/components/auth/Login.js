@@ -26,6 +26,20 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      toast.error('Please enter a valid email address!');
+      return;
+    }
+
+    // Validate password
+    if (!password || password.length < 6) {
+      toast.error('Please enter a valid password (minimum 6 characters)!');
+      return;
+    }
+
     setLoading(true);
     setNeedsVerification(false);
 
@@ -103,7 +117,7 @@ const Login = () => {
               disabled={resendingVerification}
               style={{
                 padding: '0.5rem 1rem',
-                background: '#3b82f6',
+                background: '#17a2b8',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',

@@ -1,10 +1,9 @@
-// frontend/src/components/company/CompanyDashboard.js - FIXED
+// frontend/src/components/company/CompanyDashboard.js
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { FaBriefcase, FaUsers, FaCheckCircle, FaExclamationCircle } from 'react-icons/fa';
 import './Company.css';
 
 const CompanyDashboard = () => {
@@ -83,7 +82,6 @@ const CompanyDashboard = () => {
           textAlign: 'center',
           color: '#92400e'
         }}>
-          <FaExclamationCircle style={{ fontSize: '3rem', marginBottom: '1rem' }} />
           <h2>Account Pending Approval</h2>
           <p>Your company account is currently under review. You'll be notified once approved.</p>
         </div>
@@ -102,7 +100,6 @@ const CompanyDashboard = () => {
           textAlign: 'center',
           color: '#991b1b'
         }}>
-          <FaExclamationCircle style={{ fontSize: '3rem', marginBottom: '1rem' }} />
           <h2>Account Suspended</h2>
           <p>Your company account has been suspended. Please contact support for more information.</p>
         </div>
@@ -121,13 +118,11 @@ const CompanyDashboard = () => {
         color: '#065f46',
         marginBottom: '2rem'
       }}>
-        <FaCheckCircle style={{ fontSize: '2rem', marginRight: '0.5rem', verticalAlign: 'middle' }} />
         <span style={{ fontSize: '1.25rem', fontWeight: '600' }}>Company Dashboard - Account Active</span>
       </div>
       
       <div className="stats-grid">
         <div className="stat-card">
-          <FaBriefcase className="stat-icon" />
           <h3>Active Jobs</h3>
           <p className="stat-number">{stats.activeJobs}</p>
           <p className="stat-text">of {stats.totalJobs} total jobs</p>
@@ -135,14 +130,12 @@ const CompanyDashboard = () => {
         </div>
 
         <div className="stat-card">
-          <FaUsers className="stat-icon" />
           <h3>Total Applications</h3>
           <p className="stat-number">{stats.totalApplications}</p>
           <Link to="/company/applicants" className="stat-link">View All Applications</Link>
         </div>
 
         <div className="stat-card">
-          <FaCheckCircle className="stat-icon" />
           <h3>Qualified Applicants</h3>
           <p className="stat-number">{stats.qualifiedApplicants}</p>
           <p className="stat-text">Match score ≥ 70%</p>
@@ -150,7 +143,6 @@ const CompanyDashboard = () => {
         </div>
 
         <div className="stat-card">
-          <FaBriefcase className="stat-icon" />
           <h3>Company Profile</h3>
           <p className="stat-text">Manage your profile</p>
           <Link to="/company/profile" className="stat-link">Edit Profile</Link>
@@ -161,16 +153,16 @@ const CompanyDashboard = () => {
         <h2>Quick Actions</h2>
         <div className="action-buttons">
           <Link to="/company/post-job" className="action-btn">
-            📝 Post New Job
+            Post New Job
           </Link>
           <Link to="/company/jobs" className="action-btn">
-            💼 Manage Job Postings
+            Manage Job Postings
           </Link>
           <Link to="/company/qualified-applicants" className="action-btn">
-            ⭐ View Qualified Applicants
+            View Qualified Applicants
           </Link>
           <Link to="/company/profile" className="action-btn">
-            🏢 Company Profile
+            Company Profile
           </Link>
         </div>
       </div>
@@ -185,7 +177,7 @@ const CompanyDashboard = () => {
           color: '#1e40af'
         }}>
           <p style={{ margin: 0, fontWeight: '600' }}>
-            🎯 You have {stats.qualifiedApplicants} qualified applicants ready for review!
+            You have {stats.qualifiedApplicants} qualified applicants ready for review!
           </p>
         </div>
       )}
