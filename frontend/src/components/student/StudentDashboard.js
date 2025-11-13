@@ -103,6 +103,82 @@ const StudentDashboard = () => {
 
   return (
     <div className="dashboard-container">
+      {/* Navigation Tabs */}
+      <div className="dashboard-nav-tabs" style={{
+        display: 'flex',
+        gap: '0',
+        borderBottom: '2px solid #e5e7eb',
+        marginBottom: '2rem',
+        overflowX: 'auto'
+      }}>
+        <Link to="/student/dashboard" className="nav-tab active" style={{
+          padding: '1rem 1.5rem',
+          borderBottom: '3px solid #3b82f6',
+          color: '#3b82f6',
+          textDecoration: 'none',
+          fontWeight: '600',
+          whiteSpace: 'nowrap'
+        }}>
+          Dashboard
+        </Link>
+        <Link to="/student/apply-course" className="nav-tab" style={{
+          padding: '1rem 1.5rem',
+          borderBottom: '3px solid transparent',
+          color: '#6b7280',
+          textDecoration: 'none',
+          fontWeight: '600',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.3s'
+        }}
+        onMouseEnter={(e) => e.target.style.color = '#3b82f6'}
+        onMouseLeave={(e) => e.target.style.color = '#6b7280'}
+        >
+          📝 Apply for Courses
+        </Link>
+        <Link to="/student/view-courses" className="nav-tab" style={{
+          padding: '1rem 1.5rem',
+          borderBottom: '3px solid transparent',
+          color: '#6b7280',
+          textDecoration: 'none',
+          fontWeight: '600',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.3s'
+        }}
+        onMouseEnter={(e) => e.target.style.color = '#3b82f6'}
+        onMouseLeave={(e) => e.target.style.color = '#6b7280'}
+        >
+          🎯 Recommended Courses
+        </Link>
+        <Link to="/student/admissions" className="nav-tab" style={{
+          padding: '1rem 1.5rem',
+          borderBottom: '3px solid transparent',
+          color: '#6b7280',
+          textDecoration: 'none',
+          fontWeight: '600',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.3s'
+        }}
+        onMouseEnter={(e) => e.target.style.color = '#3b82f6'}
+        onMouseLeave={(e) => e.target.style.color = '#6b7280'}
+        >
+          ✉️ Admissions
+        </Link>
+        <Link to="/student/profile" className="nav-tab" style={{
+          padding: '1rem 1.5rem',
+          borderBottom: '3px solid transparent',
+          color: '#6b7280',
+          textDecoration: 'none',
+          fontWeight: '600',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.3s'
+        }}
+        onMouseEnter={(e) => e.target.style.color = '#3b82f6'}
+        onMouseLeave={(e) => e.target.style.color = '#6b7280'}
+        >
+          👤 Profile
+        </Link>
+      </div>
+
       <div className="dashboard-welcome">
         <h1>Welcome back, {studentData?.personalInfo?.firstName || 'Student'}!</h1>
         <p className="dashboard-subtitle">Track your academic journey and opportunities</p>

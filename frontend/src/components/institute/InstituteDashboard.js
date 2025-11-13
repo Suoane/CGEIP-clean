@@ -168,6 +168,82 @@ const InstituteDashboard = () => {
 
   return (
     <div className="dashboard-container">
+      {/* Navigation Tabs */}
+      <div className="dashboard-nav-tabs" style={{
+        display: 'flex',
+        gap: '0',
+        borderBottom: '2px solid #e5e7eb',
+        marginBottom: '2rem',
+        overflowX: 'auto'
+      }}>
+        <Link to="/institute/dashboard" className="nav-tab active" style={{
+          padding: '1rem 1.5rem',
+          borderBottom: '3px solid #3b82f6',
+          color: '#3b82f6',
+          textDecoration: 'none',
+          fontWeight: '600',
+          whiteSpace: 'nowrap'
+        }}>
+          Dashboard
+        </Link>
+        <Link to="/institute/applications" className="nav-tab" style={{
+          padding: '1rem 1.5rem',
+          borderBottom: '3px solid transparent',
+          color: '#6b7280',
+          textDecoration: 'none',
+          fontWeight: '600',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.3s'
+        }}
+        onMouseEnter={(e) => e.target.style.color = '#3b82f6'}
+        onMouseLeave={(e) => e.target.style.color = '#6b7280'}
+        >
+          📋 Applications ({stats.applications})
+        </Link>
+        <Link to="/institute/courses" className="nav-tab" style={{
+          padding: '1rem 1.5rem',
+          borderBottom: '3px solid transparent',
+          color: '#6b7280',
+          textDecoration: 'none',
+          fontWeight: '600',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.3s'
+        }}
+        onMouseEnter={(e) => e.target.style.color = '#3b82f6'}
+        onMouseLeave={(e) => e.target.style.color = '#6b7280'}
+        >
+          📖 Courses
+        </Link>
+        <Link to="/institute/faculties" className="nav-tab" style={{
+          padding: '1rem 1.5rem',
+          borderBottom: '3px solid transparent',
+          color: '#6b7280',
+          textDecoration: 'none',
+          fontWeight: '600',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.3s'
+        }}
+        onMouseEnter={(e) => e.target.style.color = '#3b82f6'}
+        onMouseLeave={(e) => e.target.style.color = '#6b7280'}
+        >
+          🏛️ Faculties
+        </Link>
+        <Link to="/institute/profile" className="nav-tab" style={{
+          padding: '1rem 1.5rem',
+          borderBottom: '3px solid transparent',
+          color: '#6b7280',
+          textDecoration: 'none',
+          fontWeight: '600',
+          whiteSpace: 'nowrap',
+          transition: 'all 0.3s'
+        }}
+        onMouseEnter={(e) => e.target.style.color = '#3b82f6'}
+        onMouseLeave={(e) => e.target.style.color = '#6b7280'}
+        >
+          ⚙️ Profile
+        </Link>
+      </div>
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h1>Institution Dashboard</h1>
         <button 

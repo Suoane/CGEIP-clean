@@ -623,14 +623,14 @@ const ApplyCourse = () => {
                       color: '#374151',
                       fontWeight: '600'
                     }}>
-                      🏛️ {course.institution?.name}
+                      🏛️ {course.institution?.name || 'Unknown Institution'}
                     </p>
                     <p style={{ 
                       margin: '0.25rem 0 0 0', 
                       fontSize: '0.75rem',
                       color: '#6b7280'
                     }}>
-                      📍 {course.institution?.location}
+                      📍 {course.institution?.location || 'Location not available'}
                     </p>
                   </div>
 
@@ -890,7 +890,7 @@ const ApplyCourse = () => {
                 {selectedCourse.courseName}
               </h3>
               <p style={{ color: '#6b7280', margin: '0 0 1rem 0' }}>
-                {selectedCourse.institution?.name} • {selectedCourse.courseCode}
+                <strong>Institution:</strong> {selectedCourse.institution?.name || 'Unknown Institution'} • {selectedCourse.courseCode}
               </p>
 
               <div style={{ 

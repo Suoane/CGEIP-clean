@@ -48,6 +48,8 @@ const ViewApplications = () => {
       setLoading(true);
       setError(null);
       
+      console.log('🔍 Fetching applications for institution:', currentUser.uid);
+      
       // Query applications for this institution
       const q = query(
         collection(db, 'applications'),
@@ -58,7 +60,7 @@ const ViewApplications = () => {
       console.log('📋 Applications found:', snapshot.size);
       
       if (snapshot.empty) {
-        console.log('No applications found for this institution');
+        console.log('⚠️ No applications found for this institution');
         setApplications([]);
         setLoading(false);
         return;
@@ -68,6 +70,7 @@ const ViewApplications = () => {
       const applicationsData = await Promise.all(
         snapshot.docs.map(async (appDoc) => {
           const appData = { id: appDoc.id, ...appDoc.data() };
+          console.log('📄 Processing application:', appData);
           
           try {
             // Get student details
@@ -77,6 +80,8 @@ const ViewApplications = () => {
             // Get course details
             const courseDoc = await getDoc(doc(db, 'courses', appData.courseId));
             appData.course = courseDoc.exists() ? courseDoc.data() : null;
+            
+            console.log('✅ Application processed - Student:', appData.student?.personalInfo?.firstName, 'Course:', appData.course?.courseName);
           } catch (err) {
             console.error('Error fetching related data for application:', err);
           }
@@ -87,8 +92,8 @@ const ViewApplications = () => {
 
       // Sort by date (newest first)
       applicationsData.sort((a, b) => {
-        const dateA = a.appliedAt?.toDate() || new Date(0);
-        const dateB = b.appliedAt?.toDate() || new Date(0);
+        const dateA = a.appliedAt?.toDate ? a.appliedAt.toDate() : new Date(0);
+        const dateB = b.appliedAt?.toDate ? b.appliedAt.toDate() : new Date(0);
         return dateB - dateA;
       });
 

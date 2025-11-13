@@ -63,6 +63,11 @@ service cloud.firestore {
       allow update: if request.auth.uid == resource.data.institutionId || 
                        request.auth.uid == resource.data.studentId || isAdmin();
       allow delete: if isAdmin();
+      
+      // Allow notifications to be created for status updates
+      match /notifications/{notificationId} {
+        allow create: if request.auth.uid == resource.data.userId || isAdmin();
+      }
     }
 
     // Admissions collection - institution, student, and admins can read
@@ -92,9 +97,10 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
-    // Notifications collection - users and admins can read their notifications
+    // Notifications collection - users and admins can read/create their notifications
     match /notifications/{notificationId} {
       allow read: if request.auth.uid == resource.data.userId || isAdmin();
+      allow create: if request.auth != null; // Any authenticated user can create notifications for others
       allow update: if request.auth.uid == resource.data.userId || isAdmin();
       allow delete: if isAdmin();
     }
