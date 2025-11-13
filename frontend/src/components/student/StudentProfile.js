@@ -241,18 +241,6 @@ const StudentProfile = () => {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Email *</label>
-                <input
-                  type="email"
-                  name="email"
-                  value={formData.personalInfo.email}
-                  onChange={(e) => handleChange(e, 'personalInfo')}
-                  required
-                  disabled
-                />
-              </div>
-
               <div className="form-row">
                 <div className="form-group">
                   <label>Phone Number</label>
